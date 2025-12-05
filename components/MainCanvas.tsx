@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  User, Target, Globe, ShieldCheck, Zap, 
+  User, Users, Target, Globe, ShieldCheck, Zap, 
   Layout, FileText, CheckCircle2, ChevronRight, 
   ChevronLeft, Play, Settings, Database, 
   Briefcase, Clock, AlertTriangle, Layers,
   ArrowRight, Search, Plus, Trash2, MapPin,
   TrendingUp, BarChart3, Scale, Info, Building2, MousePointerClick, Flag, History, PenTool,
-  Network
+  Network, Cpu, MessageSquare, Mic, Share2
 } from 'lucide-react';
 import { ReportParameters, ReportData, GenerationPhase, LiveOpportunityItem, ReportSection } from '../types';
 import { 
@@ -27,7 +27,11 @@ import {
     PROCUREMENT_MODES,
     SECTOR_OPPORTUNITIES,
     GOVERNMENT_INCENTIVES,
-    DOMAIN_OBJECTIVES
+    DOMAIN_OBJECTIVES,
+    AVAILABLE_AGENTS,
+    OUTPUT_FORMATS,
+    LETTER_STYLES,
+    REPORT_DEPTHS
 } from '../constants';
 
 // Module Imports
@@ -41,6 +45,8 @@ import { AddOpportunityModal } from './AddOpportunityModal';
 import DueDiligenceSuite from './DueDiligenceSuite';
 import GlobalPartnerSearch from './GlobalPartnerSearch';
 import { ComparativeAnalysis } from './ComparativeAnalysis';
+import ScenarioSimulator from './ScenarioSimulator'; // NEW
+import CompetitorMap from './CompetitorMap'; // NEW
 
 // Icons
 import { RocketIcon, MatchMakerIcon, GlobeIcon, BarChart } from './Icons';
@@ -156,22 +162,25 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     params, setParams, reportData, isGenerating, generationPhase, generationProgress, onGenerate,
     reports, onOpenReport, onDeleteReport, onNewAnalysis
 }) => {
-    const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+    // UPDATED: Expanded to 6 steps to allow for deep configuration
+    const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+    
     const [isOpportunityModalOpen, setIsOpportunityModalOpen] = useState(false);
     const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
     const [isLetterModalOpen, setIsLetterModalOpen] = useState(false);
     const [isComparativeModalOpen, setIsComparativeModalOpen] = useState(false);
     const [activeModuleConfig, setActiveModuleConfig] = useState<string | null>(null);
     const [customIncentive, setCustomIncentive] = useState('');
+    const [resultTab, setResultTab] = useState<'dossier' | 'simulation' | 'market'>('dossier');
     
     // Feature States for Dynamic Workflow
     const [dueDiligenceTarget, setDueDiligenceTarget] = useState<string>('');
     const [showPartnerSearch, setShowPartnerSearch] = useState(false);
 
-    // Auto-advance
+    // Auto-advance logic update
     useEffect(() => {
-        if (generationPhase === 'complete' && step !== 4) {
-            setStep(4);
+        if (generationPhase === 'complete' && step !== 6) {
+            setStep(6);
         }
     }, [generationPhase]);
 
@@ -185,6 +194,14 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
             ? current.filter(m => m !== moduleId)
             : [...current, moduleId];
         setParams({ ...params, selectedModules: updated });
+    };
+
+    const toggleAgent = (agent: string) => {
+        const current = params.selectedAgents || [];
+        const updated = current.includes(agent)
+            ? current.filter(a => a !== agent)
+            : [...current, agent];
+        setParams({ ...params, selectedAgents: updated });
     };
 
     const toggleArrayParam = (key: keyof ReportParameters, value: string) => {
@@ -221,7 +238,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     // --- STEP 1: ORGANIZATION DNA ---
     const renderStep1_Profile = () => (
         <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
-            {/* Header */}
             <div className="flex items-center gap-4 mb-4">
                 <div className="p-3 bg-white border border-stone-200 rounded-xl shadow-sm">
                     <Building2 className="w-6 h-6 text-blue-600" />
@@ -233,7 +249,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
             </div>
 
             <div className="grid grid-cols-1 gap-8">
-                
                 {/* 1. Skill & Persona Selector */}
                 <div className="bg-stone-50 p-6 rounded-xl border border-stone-200">
                     <label className="block text-sm font-bold text-stone-900 mb-3 uppercase tracking-wide">Analysis Perspective & Skill Level</label>
@@ -300,28 +315,17 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                     placeholder="123 Strategic Ave, Global City"
                                 />
                             </div>
-                             <div>
-                                <label className="text-xs font-bold text-stone-700 block mb-1">Website (Optional)</label>
-                                <input 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none"
-                                    value={params.organizationWebsite || ''}
-                                    onChange={(e) => handleParamChange('organizationWebsite', e.target.value)}
-                                    placeholder="https://..."
-                                />
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 3. Operational Context & Role (Redesigned) */}
+                {/* 3. Operational Context & Role */}
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2 flex justify-between">
                         <span>Operational Context & User Role</span>
-                        <span className="text-xs text-blue-600 font-normal normal-case hidden md:block">Flexible input for any organization size</span>
                     </h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Column A: Organizational Scale */}
                         <div className="space-y-5">
                             <h5 className="text-sm font-bold text-stone-900 border-l-2 border-stone-300 pl-2">Organizational Scale</h5>
                             
@@ -342,10 +346,8 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             />
                         </div>
 
-                        {/* Column B: Your Role */}
                         <div className="space-y-5">
                             <h5 className="text-sm font-bold text-stone-900 border-l-2 border-stone-300 pl-2">Your Role Context</h5>
-                            
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs font-bold text-stone-700 block mb-1">Your Name</label>
@@ -366,7 +368,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                     />
                                 </div>
                             </div>
-
                             <SelectOrInput 
                                 label="Role Perspective (Authority)"
                                 value={params.decisionAuthority || ''}
@@ -381,11 +382,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
         </div>
     );
 
-    // --- STEP 2: STRATEGIC MANDATE (REBUILT FOR EXPANSION) ---
+    // --- STEP 2: STRATEGIC MANDATE ---
     const renderStep2_Mandate = () => {
-        // Derive specific opportunities based on selected industry
         const domainObjectives = getObjectivesList();
-
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
                 <div className="flex items-center gap-4 mb-4">
@@ -401,7 +400,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 {/* 1. Mission Architecture */}
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Mission Architecture</h4>
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <SelectOrInput
                             label="Core Strategic Intent"
@@ -410,7 +408,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             onChange={(val) => handleParamChange('strategicIntent', val)}
                             placeholder="e.g. Hostile Takeover Defense"
                         />
-                        
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-stone-700 block mb-1">Target Region</label>
@@ -443,7 +440,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 {/* 2. Strategic Context (Narrative) */}
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Strategic Context (Narrative)</h4>
-                    
                     <div className="grid grid-cols-1 gap-6">
                         <div>
                             <label className="text-xs font-bold text-stone-700 block mb-1">Problem Statement / Mission Context</label>
@@ -452,7 +448,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                 rows={3}
                                 value={params.problemStatement}
                                 onChange={(e) => handleParamChange('problemStatement', e.target.value)}
-                                placeholder="Describe the specific challenge or opportunity driving this mandate. E.g., 'We are facing supply chain bottlenecks in SE Asia and need a diversified manufacturing partner...'"
+                                placeholder="Describe the specific challenge or opportunity driving this mandate..."
                             />
                         </div>
                         <div>
@@ -462,7 +458,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                 rows={2}
                                 value={params.idealPartnerProfile}
                                 onChange={(e) => handleParamChange('idealPartnerProfile', e.target.value)}
-                                placeholder="Describe the attributes of your ideal counterpart. E.g., 'A local logistics firm with bonded warehouse capacity and >$10M revenue...'"
+                                placeholder="Describe the attributes of your ideal counterpart..."
                             />
                         </div>
                     </div>
@@ -471,7 +467,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 {/* 3. Targeting & Mechanics */}
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Targeting & Mechanics</h4>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <SelectOrInput
                             label="Target Counterpart Profile"
@@ -480,7 +475,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             onChange={(val) => handleParamChange('targetCounterpartType', val)}
                             placeholder="e.g. Specific Ministry or Conglomerate"
                         />
-                        
                         <div>
                             <label className="text-xs font-bold text-stone-700 block mb-1">Target Incentives</label>
                             <div className="flex gap-2 mb-2">
@@ -500,13 +494,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                         placeholder="Or type custom..."
                                         value={customIncentive}
                                         onChange={(e) => setCustomIncentive(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && customIncentive) {
-                                                e.preventDefault();
-                                                toggleArrayParam('targetIncentives', customIncentive);
-                                                setCustomIncentive('');
-                                            }
-                                        }}
                                     />
                                     <button 
                                         onClick={() => {
@@ -531,49 +518,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                         </div>
                     </div>
                 </div>
-
-                {/* 4. Success Vectors */}
-                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
-                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Success Vectors</h4>
-
-                    <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Priority Themes</label>
-                        <div className="flex flex-wrap gap-2">
-                            {PRIORITY_THEMES.slice(0, 10).map(theme => (
-                                <button
-                                    key={theme}
-                                    onClick={() => toggleArrayParam('priorityThemes', theme)}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                                        (params.priorityThemes || []).includes(theme)
-                                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                                        : 'bg-white text-stone-500 border-stone-200 hover:border-purple-300'
-                                    }`}
-                                >
-                                    {theme}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Key Performance Indicators (KPIs)</label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {SUCCESS_METRICS.map(metric => (
-                                <button
-                                    key={metric.value}
-                                    onClick={() => toggleArrayParam('successMetrics', metric.label)}
-                                    className={`p-3 rounded-lg text-xs font-bold border text-center transition-all ${
-                                        (params.successMetrics || []).includes(metric.label)
-                                        ? 'bg-blue-50 border-blue-500 text-blue-800 shadow-inner'
-                                        : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
-                                    }`}
-                                >
-                                    {metric.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
             </div>
         );
     };
@@ -595,7 +539,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 {/* Financial & Timeline */}
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Financial Architecture</h4>
-                    
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-bold text-stone-700 block mb-1">Budget Cap</label>
@@ -620,7 +563,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             </select>
                         </div>
                     </div>
-
                     <div>
                         <label className="text-xs font-bold text-stone-700 block mb-1">Funding Source</label>
                         <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.fundingSource} onChange={e => handleParamChange('fundingSource', e.target.value)}>
@@ -628,7 +570,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             {FUNDING_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                     </div>
-
                     <div>
                         <label className="text-xs font-bold text-stone-700 block mb-1">Procurement Mode</label>
                         <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.procurementMode} onChange={e => handleParamChange('procurementMode', e.target.value)}>
@@ -641,7 +582,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 {/* Risk & Sensitivities */}
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Risk & Sensitivities</h4>
-                    
                     <div>
                         <label className="text-xs font-bold text-stone-700 block mb-3">Risk Appetite</label>
                         <div className="space-y-2">
@@ -660,7 +600,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             ))}
                         </div>
                     </div>
-
                     <div>
                         <label className="text-xs font-bold text-stone-700 block mb-2">Political Sensitivities (Red Lines)</label>
                         <div className="flex flex-wrap gap-2">
@@ -684,61 +623,198 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
         </div>
     );
 
-    const renderStep3_Engines = () => (
+    // --- STEP 4: INTELLIGENCE ARCHITECTURE (New Step) ---
+    const renderStep4_Architecture = () => (
         <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
-            <div className="bg-white p-8 rounded-xl shadow-sm border border-stone-200">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h3 className="text-xl font-serif font-bold text-stone-900 flex items-center gap-2">
-                            <Layers className="w-5 h-5 text-stone-400" /> Intelligence Architecture
-                        </h3>
-                        <p className="text-sm text-stone-500 mt-1">Activate and configure specific intelligence modules.</p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs font-bold text-stone-400 uppercase tracking-widest">
-                        {(params.selectedModules || []).length} Active
-                    </div>
+            <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-white border border-stone-200 rounded-xl shadow-sm">
+                    <Cpu className="w-6 h-6 text-purple-600" />
                 </div>
+                <div>
+                    <h3 className="text-xl font-serif font-bold text-stone-900">Intelligence Architecture</h3>
+                    <p className="text-sm text-stone-500">Configure the AI Agent Swarm and Mathematical Engines.</p>
+                </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {ENGINE_CATALOG.map(eng => {
-                        const isActive = (params.selectedModules || []).includes(eng.id);
-                        return (
-                            <div 
-                                key={eng.id}
-                                className={`rounded-xl border transition-all ${isActive ? 'bg-white border-stone-900 shadow-md' : 'bg-stone-50 border-transparent hover:bg-stone-100'}`}
-                            >
-                                <div className="p-4 flex items-start gap-4 cursor-pointer" onClick={() => toggleModule(eng.id)}>
-                                    <div className={`p-2 rounded-lg ${isActive ? eng.bg : 'bg-white border border-stone-200'}`}>
-                                        <eng.icon className={`w-6 h-6 ${isActive ? eng.color : 'text-stone-400'}`} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <div className={`font-bold text-sm ${isActive ? 'text-stone-900' : 'text-stone-500'}`}>{eng.label}</div>
-                                            {isActive && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-stone-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    
+                    {/* Column 1: Math Modules */}
+                    <div>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+                                <Layers className="w-5 h-5 text-stone-400" /> Active Math Engines
+                            </h3>
+                            <div className="text-xs font-bold text-stone-400">{(params.selectedModules || []).length} Selected</div>
+                        </div>
+                        <div className="space-y-3">
+                            {ENGINE_CATALOG.map(eng => {
+                                const isActive = (params.selectedModules || []).includes(eng.id);
+                                return (
+                                    <div 
+                                        key={eng.id}
+                                        onClick={() => toggleModule(eng.id)}
+                                        className={`rounded-lg border p-3 cursor-pointer transition-all ${isActive ? 'bg-stone-50 border-stone-800' : 'bg-white border-stone-200 hover:bg-stone-50'}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-1.5 rounded ${isActive ? 'bg-stone-200' : 'bg-stone-50'}`}>
+                                                <eng.icon className={`w-4 h-4 ${isActive ? 'text-stone-900' : 'text-stone-400'}`} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between">
+                                                    <div className={`text-xs font-bold ${isActive ? 'text-stone-900' : 'text-stone-500'}`}>{eng.label}</div>
+                                                    {isActive && <CheckCircle2 className="w-3 h-3 text-green-500" />}
+                                                </div>
+                                                <div className="text-[10px] text-stone-400 leading-tight mt-0.5">{eng.desc}</div>
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-stone-400 leading-snug">{eng.desc}</div>
                                     </div>
-                                </div>
-                                {isActive && (
-                                    <div className="px-4 pb-4 pt-0">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); setActiveModuleConfig(eng.id); }}
-                                            className="w-full py-2 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors"
-                                        >
-                                            <Settings size={12} /> Configure Parameters
-                                        </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Column 2: AI Agents */}
+                    <div>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+                                <Users className="w-5 h-5 text-stone-400" /> AI Agent Swarm
+                            </h3>
+                            <div className="text-xs font-bold text-stone-400">{(params.selectedAgents || []).length} Active</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {AVAILABLE_AGENTS.map(agent => (
+                                <button
+                                    key={agent}
+                                    onClick={() => toggleAgent(agent)}
+                                    className={`px-3 py-3 rounded-lg border text-left transition-all ${
+                                        (params.selectedAgents || []).includes(agent)
+                                        ? 'bg-blue-50 border-blue-200 text-blue-800 shadow-sm'
+                                        : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${(params.selectedAgents || []).includes(agent) ? 'bg-blue-500 animate-pulse' : 'bg-stone-300'}`}></div>
+                                        <span className="text-xs font-bold">{agent}</span>
                                     </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-6 p-4 bg-stone-50 rounded-lg border border-stone-100">
+                            <h4 className="text-xs font-bold text-stone-500 uppercase mb-2">Swarm Logic</h4>
+                            <p className="text-xs text-stone-600 leading-relaxed">
+                                Selected agents will run in parallel. "Scout" gathers raw data, "Diplomat" analyzes political risk, and "Strategist" synthesizes the final roadmap.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     );
 
-    const renderStep4_Synthesis = () => (
-        <div className="h-full flex flex-col items-center justify-center text-center p-12">
+    // --- STEP 5: OUTPUT CONFIGURATION (New Step) ---
+    const renderStep5_Output = () => (
+        <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
+            <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-white border border-stone-200 rounded-xl shadow-sm">
+                    <FileText className="w-6 h-6 text-stone-700" />
+                </div>
+                <div>
+                    <h3 className="text-xl font-serif font-bold text-stone-900">Output Configuration</h3>
+                    <p className="text-sm text-stone-500">Define the format, tone, and specific deliverables for this mission.</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Column 1: Format & Audience */}
+                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Format & Audience</h4>
+                    
+                    <div>
+                        <label className="text-xs font-bold text-stone-700 block mb-2">Primary Deliverable Format</label>
+                        <select 
+                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                            value={params.outputFormat}
+                            onChange={(e) => handleParamChange('outputFormat', e.target.value)}
+                        >
+                            {OUTPUT_FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-bold text-stone-700 block mb-2">Report Depth</label>
+                        <div className="grid grid-cols-1 gap-2">
+                            {REPORT_DEPTHS.map((depth) => (
+                                <button
+                                    key={depth.value}
+                                    onClick={() => handleParamChange('reportLength', depth.value)}
+                                    className={`px-4 py-3 rounded-lg border text-left flex justify-between items-center transition-all ${
+                                        params.reportLength === depth.value
+                                        ? 'bg-stone-800 text-white border-stone-800'
+                                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                                    }`}
+                                >
+                                    <span className="text-xs font-bold">{depth.label}</span>
+                                    {params.reportLength === depth.value && <CheckCircle2 size={14} />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Column 2: Tone & Artifacts */}
+                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Voice & Artifacts</h4>
+                    
+                    <div>
+                        <label className="text-xs font-bold text-stone-700 block mb-2">Communication Style (Tone)</label>
+                        <select 
+                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                            value={params.letterStyle}
+                            onChange={(e) => handleParamChange('letterStyle', e.target.value)}
+                        >
+                            {LETTER_STYLES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-bold text-stone-700 block mb-2">Tactical Emphasis</label>
+                        <div className="space-y-4 bg-stone-50 p-4 rounded-lg border border-stone-100">
+                            <div>
+                                <div className="flex justify-between text-[10px] uppercase font-bold text-stone-500 mb-1">
+                                    <span>Conservative</span>
+                                    <span>Aggressive</span>
+                                </div>
+                                <input type="range" className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer" />
+                            </div>
+                            <div>
+                                <div className="flex justify-between text-[10px] uppercase font-bold text-stone-500 mb-1">
+                                    <span>Strategic (Long Term)</span>
+                                    <span>Tactical (Immediate)</span>
+                                </div>
+                                <input type="range" className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <label className="text-xs font-bold text-stone-700 block mb-2">Additional Artifacts</label>
+                        <div className="flex flex-wrap gap-2">
+                            {['Executive Memo', 'Risk Matrix', 'Partner Shortlist', 'Financial Model (XLS)'].map(art => (
+                                <span key={art} className="px-3 py-1 bg-stone-100 border border-stone-200 rounded-full text-[10px] font-bold text-stone-600 cursor-pointer hover:bg-stone-200">
+                                    + {art}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    // --- STEP 6: SYNTHESIS (RENDER) ---
+    const renderStep6_Synthesis = () => (
+        <div className="h-full flex flex-col items-center justify-center text-center p-4 md:p-12">
             {isGenerating && generationPhase !== 'complete' ? (
                 <>
                     <div className="w-20 h-20 border-4 border-stone-200 border-t-stone-900 rounded-full animate-spin mb-8"></div>
@@ -749,60 +825,106 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     </div>
                 </>
             ) : (
-                <div className="w-full max-w-4xl space-y-8 text-left">
-                    <div className="bg-white border border-stone-200 p-8 rounded-xl shadow-lg flex items-center justify-between">
+                <div className="w-full max-w-6xl text-left h-full flex flex-col">
+                    {/* New Tabbed Header */}
+                    <div className="flex justify-between items-end border-b border-stone-200 pb-2 mb-6 shrink-0">
                         <div>
                             <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-bold uppercase tracking-widest mb-3 border border-green-100">
                                 <CheckCircle2 size={14} /> Intelligence Ready
                             </div>
-                            <h1 className="text-3xl font-serif font-bold text-stone-900">Strategic Intelligence Dossier</h1>
+                            <h1 className="text-3xl font-serif font-bold text-stone-900">Strategic Intelligence Hub</h1>
                             <p className="text-stone-500 mt-1">Prepared for {params.organizationName} targeting {params.country}</p>
                         </div>
-                        <div className="flex flex-col gap-3">
-                            <button onClick={() => window.print()} className="px-6 py-2 bg-stone-900 text-white font-bold rounded-lg text-sm hover:bg-black transition-colors shadow-lg">
-                                Download PDF
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setResultTab('dossier')}
+                                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${resultTab === 'dossier' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
+                            >
+                                Executive Dossier
                             </button>
-                            <button onClick={() => setIsLetterModalOpen(true)} className="px-6 py-2 bg-white text-stone-900 border border-stone-300 font-bold rounded-lg text-sm hover:bg-stone-50 transition-colors">
-                                Draft Outreach
+                            <button 
+                                onClick={() => setResultTab('simulation')}
+                                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${resultTab === 'simulation' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
+                            >
+                                Strategic Simulation
                             </button>
-                            <button onClick={() => setIsComparativeModalOpen(true)} className="px-6 py-2 bg-purple-50 text-purple-900 border border-purple-200 font-bold rounded-lg text-sm hover:bg-purple-100 transition-colors flex items-center justify-center gap-2">
-                                <Scale size={14} /> Compare Scenario
+                            <button 
+                                onClick={() => setResultTab('market')}
+                                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors ${resultTab === 'market' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
+                            >
+                                Competitive Landscape
                             </button>
                         </div>
                     </div>
 
-                    {/* RENDER MODULES */}
-                    <div className="space-y-8">
-                        {(params.selectedModules || []).includes('rocket_engine') && (
-                            <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-                                <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
-                                    <RocketIcon className="w-5 h-5 text-orange-500" /> Nexus Rocket Engine Results
+                    {/* Content Area */}
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        {/* TAB 1: EXECUTIVE DOSSIER (Existing View) */}
+                        {resultTab === 'dossier' && (
+                            <div className="space-y-8 animate-in fade-in">
+                                <div className="bg-white border border-stone-200 p-6 rounded-xl shadow-sm flex justify-between items-center">
+                                    <div className="text-sm text-stone-600">
+                                        <strong>Actions:</strong>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => window.print()} className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-lg text-xs transition-colors">
+                                            Download PDF
+                                        </button>
+                                        <button onClick={() => setIsLetterModalOpen(true)} className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-lg text-xs transition-colors">
+                                            Draft Outreach
+                                        </button>
+                                        <button onClick={() => setIsComparativeModalOpen(true)} className="px-4 py-2 bg-purple-50 text-purple-900 border border-purple-200 font-bold rounded-lg text-xs hover:bg-purple-100 transition-colors flex items-center justify-center gap-2">
+                                            <Scale size={14} /> Compare
+                                        </button>
+                                    </div>
                                 </div>
-                                <RocketEngineModule params={params} />
+
+                                {(params.selectedModules || []).includes('rocket_engine') && (
+                                    <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                                        <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
+                                            <RocketIcon className="w-5 h-5 text-orange-500" /> Nexus Rocket Engine Results
+                                        </div>
+                                        <RocketEngineModule params={params} />
+                                    </div>
+                                )}
+                                {(params.selectedModules || []).includes('matchmaking') && (
+                                    <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                                        <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
+                                            <MatchMakerIcon className="w-5 h-5 text-blue-500" /> Strategic Partners
+                                        </div>
+                                        <div className="p-6"><MatchmakingEngine params={params} autoRun={true} /></div>
+                                    </div>
+                                )}
+                                {(params.selectedModules || []).includes('historical_precedents') && (
+                                    <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                                        <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
+                                            <History className="w-5 h-5 text-stone-600" /> Historical Context Engine
+                                        </div>
+                                        <div className="p-6"><HistoricalContextComponent params={params} /></div>
+                                    </div>
+                                )}
+                                {(params.selectedModules || []).includes('temporal_analysis') && (
+                                    <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                                        <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
+                                            <Clock className="w-5 h-5 text-cyan-600" /> Temporal Phase Analysis
+                                        </div>
+                                        <div className="p-6"><TemporalAnalysisComponent params={params} /></div>
+                                    </div>
+                                )}
                             </div>
                         )}
-                        {(params.selectedModules || []).includes('matchmaking') && (
-                            <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-                                <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
-                                    <MatchMakerIcon className="w-5 h-5 text-blue-500" /> Strategic Partners
-                                </div>
-                                <div className="p-6"><MatchmakingEngine params={params} autoRun={true} /></div>
+
+                        {/* TAB 2: SIMULATION (New) */}
+                        {resultTab === 'simulation' && (
+                            <div className="h-[600px] animate-in slide-in-from-right-4">
+                                <ScenarioSimulator />
                             </div>
                         )}
-                        {(params.selectedModules || []).includes('historical_precedents') && (
-                            <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-                                <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
-                                    <History className="w-5 h-5 text-stone-600" /> Historical Context Engine
-                                </div>
-                                <div className="p-6"><HistoricalContextComponent params={params} /></div>
-                            </div>
-                        )}
-                        {(params.selectedModules || []).includes('temporal_analysis') && (
-                            <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-                                <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
-                                    <Clock className="w-5 h-5 text-cyan-600" /> Temporal Phase Analysis
-                                </div>
-                                <div className="p-6"><TemporalAnalysisComponent params={params} /></div>
+
+                        {/* TAB 3: MARKET LANDSCAPE (New) */}
+                        {resultTab === 'market' && (
+                            <div className="h-[600px] animate-in slide-in-from-right-4">
+                                <CompetitorMap clientName={params.organizationName} />
                             </div>
                         )}
                     </div>
@@ -811,124 +933,11 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
         </div>
     );
 
-    // --- LIVE PREVIEW COMPONENT ---
-    const LivePreview = () => (
-        <div className="bg-stone-50 border-l border-stone-200 h-full flex flex-col">
-            <div className="p-6 border-b border-stone-200 bg-white sticky top-0 z-10">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Live Intelligence Feed</h3>
-                    <div className="flex gap-2">
-                        {params.country && <span className="text-[10px] bg-stone-100 px-2 py-1 rounded text-stone-600 font-bold border border-stone-200">{params.country}</span>}
-                    </div>
-                </div>
-                
-                {/* Dynamic Header Based on Input */}
-                <div className="space-y-1">
-                    <h2 className="text-lg font-serif font-bold text-stone-900 leading-tight">
-                        {params.organizationName || 'Organization Name'}
-                    </h2>
-                    <p className="text-xs text-stone-500 truncate">{params.strategicIntent || 'Define Strategic Intent...'}</p>
-                </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                
-                {/* 0. Due Diligence (If active) */}
-                {dueDiligenceTarget && (
-                    <div className="animate-in fade-in slide-in-from-right-4">
-                        <div className="flex items-center gap-2 mb-2">
-                            <ShieldCheck className="w-4 h-4 text-blue-600" />
-                            <span className="text-xs font-bold text-blue-800 uppercase">Live Due Diligence</span>
-                        </div>
-                        <DueDiligenceSuite partnerName={dueDiligenceTarget} partnerType="Potential Partner" />
-                    </div>
-                )}
-
-                {/* 1. Regional Context Card */}
-                {params.country && cityData && (
-                    <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                        <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
-                            <GlobeIcon className="w-3 h-3 text-blue-500" /> Regional Context: {params.country}
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="p-2 bg-stone-50 rounded border border-stone-100">
-                                <div className="text-stone-400 mb-1">GDP (Est.)</div>
-                                <div className="font-bold text-stone-800">${cityData.gdp.totalBillionUSD}B</div>
-                            </div>
-                            <div className="p-2 bg-stone-50 rounded border border-stone-100">
-                                <div className="text-stone-400 mb-1">Ease of Biz</div>
-                                <div className="font-bold text-stone-800">{cityData.businessEnvironment.easeOfDoingBusiness}/10</div>
-                            </div>
-                            <div className="p-2 bg-stone-50 rounded border border-stone-100">
-                                <div className="text-stone-400 mb-1">Infra Score</div>
-                                <div className="font-bold text-stone-800">{cityData.infrastructure.digital}/10</div>
-                            </div>
-                            <div className="p-2 bg-stone-50 rounded border border-stone-100">
-                                <div className="text-stone-400 mb-1">Talent</div>
-                                <div className="font-bold text-stone-800">{cityData.talentPool.skillsAvailability}/10</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* 2. Calculated Metrics Preview */}
-                {step >= 2 && (
-                    <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                        <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
-                            <BarChart className="w-3 h-3 text-green-500" /> Projected Metrics
-                        </h4>
-                        <div className="space-y-3">
-                            <div>
-                                <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-stone-500">Risk Profile</span>
-                                    <span className="font-bold text-stone-900">{params.riskTolerance || 'N/A'}</span>
-                                </div>
-                                <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
-                                    <div className={`h-full ${params.riskTolerance === 'High' ? 'bg-red-500 w-3/4' : params.riskTolerance === 'Medium' ? 'bg-yellow-500 w-1/2' : 'bg-green-500 w-1/4'}`}></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-stone-500">Timeline</span>
-                                    <span className="font-bold text-stone-900">{params.expansionTimeline || 'N/A'}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* 3. Architecture Stack */}
-                {step >= 3 && (params.selectedModules || []).length > 0 && (
-                    <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                        <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
-                            <Layers className="w-3 h-3 text-purple-500" /> Active Architecture
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                            {(params.selectedModules || []).map(m => (
-                                <span key={m} className="px-2 py-1 bg-stone-100 border border-stone-200 rounded text-[10px] font-bold text-stone-600">
-                                    {ENGINE_CATALOG.find(e => e.id === m)?.label || m}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Empty State */}
-                {!params.country && step === 1 && (
-                    <div className="text-center py-12 text-stone-400">
-                        <Info className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                        <p className="text-xs">Select a Target Region to activate intelligence feed.</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-
     return (
         <div className="flex-1 w-full flex h-full bg-stone-50 font-sans text-stone-900 min-w-0">
             
             {/* LEFT COLUMN: BUILDER (60%) */}
-            <div className={`flex-1 flex flex-col border-r border-stone-200 bg-stone-50/30 transition-all duration-500 ${step === 4 ? 'w-0 opacity-0 hidden' : 'w-[60%] p-8 overflow-y-auto'}`}>
+            <div className={`flex-1 flex flex-col border-r border-stone-200 bg-stone-50/30 transition-all duration-500 ${step === 6 ? 'w-0 opacity-0 hidden' : 'w-[60%] p-8 overflow-y-auto'}`}>
                 <div className="max-w-3xl mx-auto w-full">
                     {/* Header */}
                     <div className="mb-8">
@@ -943,17 +952,21 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             {step === 1 && "Establish Organization DNA"}
                             {step === 2 && "Strategic Mandate"}
                             {step === 3 && "Operational Mechanics"}
+                            {step === 4 && "Intelligence Architecture"}
+                            {step === 5 && "Output Configuration"}
                         </h1>
                         <p className="text-stone-500 text-sm">
                             {step === 1 && "Deep entity profiling: define scale, authority, and identity."}
                             {step === 2 && "Define specific mission vectors, priorities, and success metrics."}
                             {step === 3 && "Calibrate risk, procurement, and financial constraints."}
+                            {step === 4 && "Select specific AI agents and mathematical engines to deploy."}
+                            {step === 5 && "Customize the format, tone, and depth of your intelligence dossier."}
                         </p>
                     </div>
 
                     {/* Progress */}
                     <div className="flex items-center space-x-2 mb-8">
-                        {[1, 2, 3, 4].map(num => (
+                        {[1, 2, 3, 4, 5, 6].map(num => (
                             <React.Fragment key={num}>
                                 <div 
                                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
@@ -963,7 +976,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                 >
                                     {step > num ? <CheckCircle2 size={14} /> : num}
                                 </div>
-                                {num < 4 && <div className={`h-1 w-12 rounded-full ${step > num ? 'bg-green-500' : 'bg-stone-200'}`} />}
+                                {num < 6 && <div className={`h-1 w-8 rounded-full ${step > num ? 'bg-green-500' : 'bg-stone-200'}`} />}
                             </React.Fragment>
                         ))}
                     </div>
@@ -973,12 +986,13 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                         {step === 1 && renderStep1_Profile()}
                         {step === 2 && renderStep2_Mandate()}
                         {step === 3 && renderStep3_Calibration()}
-                        {step === 3 && renderStep3_Engines()} {/* Combine Engines into step 3 for cleaner flow */}
+                        {step === 4 && renderStep4_Architecture()}
+                        {step === 5 && renderStep5_Output()}
                     </div>
 
                     {/* Navigation */}
                     <div className="mt-8 pt-8 border-t border-stone-200 flex justify-end">
-                        {step < 3 ? (
+                        {step < 5 ? (
                             <button 
                                 onClick={() => setStep(step + 1 as any)}
                                 disabled={!params.organizationName || (step === 2 && !params.country)}
@@ -999,8 +1013,8 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
             </div>
 
             {/* RIGHT COLUMN: PREVIEW (40%) */}
-            <div className={`flex flex-col bg-white transition-all duration-500 ${step === 4 ? 'w-full' : 'w-[40%] shadow-xl'}`}>
-                {step < 4 ? <LivePreview /> : renderStep4_Synthesis()}
+            <div className={`flex flex-col bg-white transition-all duration-500 ${step === 6 ? 'w-full' : 'w-[40%] shadow-xl'}`}>
+                {step < 6 ? <LivePreview /> : renderStep6_Synthesis()}
             </div>
 
             {/* Modals */}
