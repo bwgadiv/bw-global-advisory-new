@@ -53,9 +53,9 @@ import GlobalPartnerSearch from './GlobalPartnerSearch';
 import { ComparativeAnalysis } from './ComparativeAnalysis';
 import ScenarioSimulator from './ScenarioSimulator'; 
 import CompetitorMap from './CompetitorMap'; 
-import { FormulaBuilder } from './FormulaBuilder'; // NEW
-import { ChecklistGatekeeper } from './ChecklistGatekeeper'; // NEW
-import { INITIAL_CHECKLIST, INITIAL_FORMULAS, NeuroSymbolicEngine } from '../services/ruleEngine'; // NEW
+import { FormulaBuilder } from './FormulaBuilder'; 
+import { ChecklistGatekeeper } from './ChecklistGatekeeper'; 
+import { INITIAL_CHECKLIST, INITIAL_FORMULAS, NeuroSymbolicEngine } from '../services/ruleEngine'; 
 
 // Icons
 import { RocketIcon, MatchMakerIcon, GlobeIcon, BarChart } from './Icons';
@@ -86,7 +86,7 @@ const ENGINE_CATALOG = [
     { id: 'financials', label: 'Financial Modeling', desc: 'Strategic Cash Flow (SCF) & Predictive Growth.', icon: BarChart, color: 'text-green-600', bg: 'bg-green-50' }
 ];
 
-// Improved SelectOrInput Component
+// Improved SelectOrInput Component with Searchable List
 const SelectOrInput = ({
     label,
     value,
@@ -102,22 +102,45 @@ const SelectOrInput = ({
     placeholder?: string;
     fallbackList?: string[];
 }) => {
-    // Check if current value exists in provided options
-    const isValueInOptions = options.some(o => o.value === value);
-    // If options are empty, we might want to default to custom mode or use fallback
+    // If specific options are empty, use the fallback global list
     const effectiveOptions = options.length > 0 ? options : fallbackList.map(s => ({ value: s, label: s }));
     
-    // Default to Custom Mode if value exists but isn't in the list, OR if requested explicitly
+    // Determine mode: Custom if value exists but not in options, OR explicitly toggled
+    const isValueInOptions = effectiveOptions.some(o => o.value === value);
     const [isCustomMode, setIsCustomMode] = useState(!isValueInOptions && value !== "");
+    
+    // Search state for dropdown
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Filter options based on search
+    const filteredOptions = effectiveOptions.filter(opt => 
+        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Handle outside click to close dropdown
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     return (
-        <div className="relative group">
+        <div className="relative group mb-1">
             <div className="flex justify-between items-end mb-1.5">
                 <label className="text-xs font-bold text-stone-700 uppercase tracking-wide">{label}</label>
                 <button
                     onClick={() => {
                         setIsCustomMode(!isCustomMode);
-                        // Optional: Clear value on switch or keep it? Keeping it is usually better UX.
+                        setSearchTerm("");
+                        setIsDropdownOpen(false);
                     }}
                     className="text-[10px] flex items-center gap-1.5 font-bold transition-colors text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded cursor-pointer select-none"
                 >
@@ -147,29 +170,65 @@ const SelectOrInput = ({
                     </div>
                 </div>
             ) : (
-                <div className="relative animate-in fade-in zoom-in-95 duration-200">
-                    <select
-                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-stone-800 focus:border-stone-800 transition-all appearance-none cursor-pointer text-stone-700 font-medium"
-                        value={value}
-                        onChange={(e) => {
-                            if (e.target.value === "CUSTOM_TRIGGER") {
-                                setIsCustomMode(true);
-                                onChange("");
-                            } else {
-                                onChange(e.target.value);
-                            }
-                        }}
+                <div className="relative animate-in fade-in zoom-in-95 duration-200" ref={dropdownRef}>
+                    {/* Fake Select Box Trigger */}
+                    <div 
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm flex justify-between items-center cursor-pointer hover:border-stone-300 focus:ring-2 focus:ring-stone-800 transition-all text-stone-700 font-medium"
                     >
-                        <option value="">Select {label}...</option>
-                        {effectiveOptions.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                        <option disabled>──────────</option>
-                        <option value="CUSTOM_TRIGGER">Other / Custom Entry...</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                        <ChevronRight className="w-4 h-4 rotate-90" />
+                        <span className={value ? "text-stone-900" : "text-stone-400"}>
+                            {value || `Select ${label}...`}
+                        </span>
+                        <ChevronRight className={`w-4 h-4 text-stone-400 transition-transform ${isDropdownOpen ? '-rotate-90' : 'rotate-90'}`} />
                     </div>
+
+                    {/* Searchable Dropdown */}
+                    {isDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-stone-200 rounded-lg shadow-xl max-h-60 overflow-hidden flex flex-col">
+                            <div className="p-2 border-b border-stone-100 bg-stone-50">
+                                <div className="flex items-center gap-2 bg-white px-2 rounded border border-stone-200">
+                                    <Search className="w-3 h-3 text-stone-400" />
+                                    <input 
+                                        className="w-full py-1.5 text-xs outline-none bg-transparent"
+                                        placeholder="Search options..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+                            <div className="overflow-y-auto flex-1 custom-scrollbar">
+                                {filteredOptions.map(opt => (
+                                    <div 
+                                        key={opt.value}
+                                        onClick={() => {
+                                            onChange(opt.value);
+                                            setIsDropdownOpen(false);
+                                            setSearchTerm("");
+                                        }}
+                                        className={`px-4 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors ${value === opt.value ? 'bg-blue-50 text-blue-800 font-bold' : 'text-stone-700'}`}
+                                    >
+                                        {opt.label}
+                                    </div>
+                                ))}
+                                {filteredOptions.length === 0 && (
+                                    <div className="p-3 text-xs text-stone-400 text-center italic">
+                                        No matches. Switch to manual entry?
+                                    </div>
+                                )}
+                            </div>
+                            <div 
+                                onClick={() => {
+                                    setIsCustomMode(true);
+                                    setIsDropdownOpen(false);
+                                    onChange("");
+                                }}
+                                className="p-2 border-t border-stone-100 bg-stone-50 text-center text-xs font-bold text-blue-600 cursor-pointer hover:bg-stone-100"
+                            >
+                                + Use Custom Value
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -190,9 +249,8 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     const [activeModuleConfig, setActiveModuleConfig] = useState<string | null>(null);
     const [customIncentive, setCustomIncentive] = useState('');
     const [resultTab, setResultTab] = useState<'dossier' | 'simulation' | 'market'>('dossier');
-    const [showGatekeeper, setShowGatekeeper] = useState(false); // NEW State for Gatekeeper Panel
+    const [showGatekeeper, setShowGatekeeper] = useState(false); 
     
-    // Feature States for Dynamic Workflow
     const [dueDiligenceTarget, setDueDiligenceTarget] = useState<string>('');
     const [showPartnerSearch, setShowPartnerSearch] = useState(false);
 
@@ -207,11 +265,10 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     useEffect(() => {
         const newState = NeuroSymbolicEngine.validateGatekeeper(params, neuroState);
         setNeuroState(newState);
-        // Sync back to global params if needed (optional)
         if(JSON.stringify(newState) !== JSON.stringify(params.neuroSymbolicState)) {
             setParams({...params, neuroSymbolicState: newState});
         }
-    }, [params.organizationName, params.country, params.industry, params.strategicIntent, params.revenueBand]); // Watch key fields
+    }, [params.organizationName, params.country, params.industry, params.strategicIntent, params.revenueBand]); 
 
     // Auto-advance logic update
     useEffect(() => {
@@ -266,7 +323,6 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
 
     const cityData = getCityData();
 
-    // Determine Objectives List based on Organization Type (Persona Driven)
     const getObjectivesList = () => {
         return DOMAIN_OBJECTIVES[params.organizationType] || DOMAIN_OBJECTIVES['Private Enterprise'];
     };
@@ -381,6 +437,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                     options={ORGANIZATION_SCALE_BANDS.revenue}
                                     onChange={(val) => handleParamChange('revenueBand', val)}
                                     placeholder="e.g. $2.5M USD"
+                                    fallbackList={ORGANIZATION_SCALE_BANDS.revenue.map(r => r.label)}
                                 />
 
                                 <SelectOrInput 
@@ -389,6 +446,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                     options={ORGANIZATION_SCALE_BANDS.headcount}
                                     onChange={(val) => handleParamChange('headcountBand', val)}
                                     placeholder="e.g. 15 FTEs"
+                                    fallbackList={ORGANIZATION_SCALE_BANDS.headcount.map(h => h.label)}
                                 />
                             </div>
 
@@ -604,13 +662,14 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Time Horizon</label>
-                                <select 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
+                                <SelectOrInput
+                                    label=""
                                     value={params.expansionTimeline}
-                                    onChange={(e) => handleParamChange('expansionTimeline', e.target.value)}
-                                >
-                                    {TIME_HORIZONS.map(t => <option key={t.value} value={t.label}>{t.label}</option>)}
-                                </select>
+                                    options={TIME_HORIZONS.map(t => ({ value: t.label, label: t.label }))}
+                                    onChange={(val) => handleParamChange('expansionTimeline', val)}
+                                    placeholder="e.g. 18 months"
+                                    fallbackList={TIME_HORIZONS.map(t => t.label)}
+                                />
                             </div>
                         </div>
                     </div>
@@ -772,13 +831,14 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     
                     <div>
                         <label className="text-xs font-bold text-stone-700 block mb-2 uppercase tracking-wide">Primary Deliverable Format</label>
-                        <select 
-                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
+                        <SelectOrInput
+                            label=""
                             value={params.outputFormat}
-                            onChange={(e) => handleParamChange('outputFormat', e.target.value)}
-                        >
-                            {OUTPUT_FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                        </select>
+                            options={OUTPUT_FORMATS.map(f => ({ value: f.value, label: f.label }))}
+                            onChange={(val) => handleParamChange('outputFormat', val)}
+                            placeholder="e.g. Executive Board Pack"
+                            fallbackList={OUTPUT_FORMATS.map(f => f.label)}
+                        />
                     </div>
 
                     <div>
@@ -808,13 +868,14 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     
                     <div>
                         <label className="text-xs font-bold text-stone-700 block mb-2 uppercase tracking-wide">Communication Style (Tone)</label>
-                        <select 
-                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
+                        <SelectOrInput
+                            label=""
                             value={params.letterStyle}
-                            onChange={(e) => handleParamChange('letterStyle', e.target.value)}
-                        >
-                            {LETTER_STYLES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
+                            options={LETTER_STYLES.map(s => ({ value: s.value, label: s.label }))}
+                            onChange={(val) => handleParamChange('letterStyle', val)}
+                            placeholder="e.g. Diplomatic / G2G"
+                            fallbackList={LETTER_STYLES.map(s => s.label)}
+                        />
                     </div>
 
                     <div>
