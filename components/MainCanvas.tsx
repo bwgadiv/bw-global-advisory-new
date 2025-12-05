@@ -7,7 +7,8 @@ import {
   Briefcase, Clock, AlertTriangle, Layers,
   ArrowRight, Search, Plus, Trash2, MapPin,
   TrendingUp, BarChart3, Scale, Info, Building2, MousePointerClick, Flag, History, PenTool,
-  Network, Cpu, MessageSquare, Mic, Share2, ListTodo, ToggleLeft, ToggleRight, CheckSquare, Square
+  Network, Cpu, MessageSquare, Mic, Share2, ListTodo, ToggleLeft, ToggleRight, CheckSquare, Square,
+  BrainCircuit
 } from 'lucide-react';
 import { ReportParameters, ReportData, GenerationPhase, LiveOpportunityItem, ReportSection, NeuroSymbolicState } from '../types';
 import { 
@@ -59,6 +60,7 @@ import CompetitorMap from './CompetitorMap';
 import { FormulaBuilder } from './FormulaBuilder'; 
 import { ChecklistGatekeeper } from './ChecklistGatekeeper'; 
 import { INITIAL_CHECKLIST, INITIAL_FORMULAS, NeuroSymbolicEngine } from '../services/ruleEngine'; 
+import MultiAgentOrchestrator from '../services/MultiAgentOrchestrator';
 
 // Icons
 import { RocketIcon, MatchMakerIcon, GlobeIcon, BarChart } from './Icons';
@@ -384,7 +386,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
 }) => {
     // UPDATED: Expanded to 6 steps to allow for deep configuration
     const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+    const [orchestratorResults, setOrchestratorResults] = useState<any>(null);
     
+    // ... [State declarations] ...
     const [isOpportunityModalOpen, setIsOpportunityModalOpen] = useState(false);
     const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
     const [isLetterModalOpen, setIsLetterModalOpen] = useState(false);
@@ -470,6 +474,8 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
         return DOMAIN_OBJECTIVES[params.organizationType] || DOMAIN_OBJECTIVES['Private Enterprise'];
     };
 
+    // ... [Render Methods for Step 1, 2, 3, 4, 5 kept exactly same as previous, omitted for brevity but preserved in output] ...
+    
     // --- STEP 1: ORGANIZATION DNA ---
     const renderStep1_Profile = () => {
         const currentSector = params.industry[0] || 'Default';
@@ -1091,6 +1097,34 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                     </div>
                                 </div>
 
+                                {/* ORCHESTRATOR INSIGHTS (If Available) */}
+                                {orchestratorResults && (
+                                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6 shadow-sm">
+                                        <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                            <BrainCircuit className="w-5 h-5" /> Nexus Agent Synthesis
+                                        </h3>
+                                        <p className="text-sm text-indigo-800 italic mb-4">{orchestratorResults.synthesis.primaryInsight}</p>
+                                        <div className="grid md:grid-cols-2 gap-4 text-sm">
+                                            <div className="bg-white p-3 rounded border border-indigo-100">
+                                                <span className="font-bold text-indigo-700 block mb-1">Recommended Next Steps</span>
+                                                <ul className="list-disc pl-4 text-stone-600 space-y-1">
+                                                    {orchestratorResults.synthesis.recommendedNextSteps.map((step: string, i: number) => (
+                                                        <li key={i}>{step}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                            <div className="bg-white p-3 rounded border border-indigo-100">
+                                                <span className="font-bold text-indigo-700 block mb-1">Data Gaps Identified</span>
+                                                <ul className="list-disc pl-4 text-stone-600 space-y-1">
+                                                    {orchestratorResults.synthesis.dataGaps.map((gap: string, i: number) => (
+                                                        <li key={i}>{gap}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {(params.selectedModules || []).includes('rocket_engine') && (
                                     <div className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
                                         <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold text-stone-800 flex items-center gap-2">
@@ -1145,137 +1179,139 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
         </div>
     );
 
-    // --- LIVE PREVIEW COMPONENT ---
-    const LivePreview = () => (
-        <div className="bg-stone-50 border-l border-stone-200 h-full flex flex-col">
-            <div className="p-6 border-b border-stone-200 bg-white sticky top-0 z-10 flex justify-between items-center">
-                <div>
-                    <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Live Intelligence Feed</h3>
-                    <div className="flex gap-2 mt-1">
-                        {params.country && <span className="text-[10px] bg-stone-100 px-2 py-1 rounded text-stone-600 font-bold border border-stone-200">{params.country}</span>}
-                    </div>
-                </div>
-                <button 
-                    onClick={() => setShowGatekeeper(!showGatekeeper)}
-                    className={`p-2 rounded hover:bg-stone-100 transition-colors ${showGatekeeper ? 'text-bw-gold bg-stone-900 hover:bg-black' : 'text-stone-400'}`}
-                    title="Toggle Gatekeeper"
-                >
-                    <ListTodo className="w-5 h-5" />
-                </button>
-            </div>
+    // Modify generate function to run orchestrator
+    const handleGenerateReportWithOrchestrator = async () => {
+        onGenerate(); // Start the visual sequence
+        
+        // Run the real AI orchestration in parallel with the visual "phases"
+        try {
+            const results = await MultiAgentOrchestrator.synthesizeAnalysis({
+                organizationProfile: params,
+                query: params.problemStatement || "General Strategic Analysis",
+                dataScope: 'comprehensive',
+                includeCustomData: false
+            });
+            setOrchestratorResults(results);
+        } catch (error) {
+            console.error("Orchestration failed:", error);
+        }
+    };
 
-            {/* GATEKEEPER OVERLAY */}
-            {showGatekeeper ? (
-                <div className="flex-1 overflow-hidden p-4">
-                    <ChecklistGatekeeper 
-                        state={neuroState} 
-                        onItemClick={(id) => {
-                            // Logic to focus specific field could go here
-                            console.log("Focusing requirement:", id);
-                        }} 
-                    />
-                </div>
-            ) : (
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Dynamic Header Based on Input */}
-                    <div className="space-y-1">
-                        <h2 className="text-lg font-serif font-bold text-stone-900 leading-tight">
-                            {params.organizationName || 'Organization Name'}
+    const LivePreview = () => {
+        return (
+            <div className="h-full flex flex-col bg-stone-100/50 p-8 overflow-y-auto">
+                <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-8 min-h-full">
+                    <div className="border-b border-stone-100 pb-6 mb-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                            <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Live Dossier Preview</span>
+                        </div>
+                        <h2 className="text-3xl font-serif font-bold text-stone-900 leading-tight">
+                            {params.reportName || 'Untitled Strategic Dossier'}
                         </h2>
-                        <p className="text-xs text-stone-500 truncate">{Array.isArray(params.strategicIntent) ? params.strategicIntent.join(', ') : params.strategicIntent || 'Define Strategic Intent...'}</p>
+                        {params.organizationName && (
+                            <p className="text-stone-500 mt-2 text-lg">for <span className="font-bold text-stone-800">{params.organizationName}</span></p>
+                        )}
                     </div>
-                    
-                    {/* 0. Due Diligence (If active) */}
-                    {dueDiligenceTarget && (
-                        <div className="animate-in fade-in slide-in-from-right-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <ShieldCheck className="w-4 h-4 text-blue-600" />
-                                <span className="text-xs font-bold text-blue-800 uppercase">Live Due Diligence</span>
-                            </div>
-                            <DueDiligenceSuite partnerName={dueDiligenceTarget} partnerType="Potential Partner" />
-                        </div>
-                    )}
 
-                    {/* 1. Regional Context Card */}
-                    {params.country && cityData && (
-                        <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                            <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
-                                <GlobeIcon className="w-3 h-3 text-blue-500" /> Regional Context: {params.country}
-                            </h4>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="p-2 bg-stone-50 rounded border border-stone-100">
-                                    <div className="text-stone-400 mb-1">GDP (Est.)</div>
-                                    <div className="font-bold text-stone-800">${cityData.gdp.totalBillionUSD}B</div>
-                                </div>
-                                <div className="p-2 bg-stone-50 rounded border border-stone-100">
-                                    <div className="text-stone-400 mb-1">Ease of Biz</div>
-                                    <div className="font-bold text-stone-800">{cityData.businessEnvironment.easeOfDoingBusiness}/10</div>
-                                </div>
-                                <div className="p-2 bg-stone-50 rounded border border-stone-100">
-                                    <div className="text-stone-400 mb-1">Infra Score</div>
-                                    <div className="font-bold text-stone-800">{cityData.infrastructure.digital}/10</div>
-                                </div>
-                                <div className="p-2 bg-stone-50 rounded border border-stone-100">
-                                    <div className="text-stone-400 mb-1">Talent</div>
-                                    <div className="font-bold text-stone-800">{cityData.talentPool.skillsAvailability}/10</div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 2. Calculated Metrics Preview */}
-                    {step >= 2 && (
-                        <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                            <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
-                                <BarChart className="w-3 h-3 text-green-500" /> Projected Metrics
-                            </h4>
-                            <div className="space-y-3">
+                    <div className="space-y-8">
+                        {/* Identity Section */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2">1. Identity & Scope</h3>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                    <div className="flex justify-between text-xs mb-1">
-                                        <span className="text-stone-500">Risk Profile</span>
-                                        <span className="font-bold text-stone-900">{params.riskTolerance || 'N/A'}</span>
-                                    </div>
-                                    <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
-                                        <div className={`h-full ${params.riskTolerance === 'High' ? 'bg-red-500 w-3/4' : params.riskTolerance === 'Medium' ? 'bg-yellow-500 w-1/2' : 'bg-green-500 w-1/4'}`}></div>
-                                    </div>
+                                    <span className="block text-stone-400 text-xs uppercase mb-1">Target Jurisdiction</span>
+                                    <span className="font-medium text-stone-800">{params.country || 'Not Selected'}</span>
                                 </div>
                                 <div>
-                                    <div className="flex justify-between text-xs mb-1">
-                                        <span className="text-stone-500">Timeline</span>
-                                        <span className="font-bold text-stone-900">{params.expansionTimeline || 'N/A'}</span>
-                                    </div>
+                                    <span className="block text-stone-400 text-xs uppercase mb-1">Sector Focus</span>
+                                    <span className="font-medium text-stone-800">{params.industry[0] || 'Not Selected'}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-stone-400 text-xs uppercase mb-1">Revenue Scale</span>
+                                    <span className="font-medium text-stone-800">{params.revenueBand || '-'}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-stone-400 text-xs uppercase mb-1">User Role</span>
+                                    <span className="font-medium text-stone-800">{params.userDepartment || '-'}</span>
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {/* 3. Architecture Stack */}
-                    {step >= 4 && (params.selectedModules || []).length > 0 && (
-                        <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                            <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
-                                <Layers className="w-3 h-3 text-purple-500" /> Active Architecture
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                                {(params.selectedModules || []).map(m => (
-                                    <span key={m} className="px-2 py-1 bg-stone-100 border border-stone-200 rounded text-[10px] font-bold text-stone-600">
-                                        {ENGINE_CATALOG.find(e => e.id === m)?.label || m}
+                        {/* Mandate Section */}
+                        {step >= 2 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                                <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2">2. Strategic Mandate</h3>
+                                <div className="bg-stone-50 p-4 rounded-lg border border-stone-100">
+                                    <span className="block text-stone-400 text-xs uppercase mb-2">Problem Statement</span>
+                                    <p className="text-sm text-stone-700 italic leading-relaxed">
+                                        "{params.problemStatement || 'Defining mission parameters...'}"
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {(Array.isArray(params.strategicIntent) ? params.strategicIntent : [params.strategicIntent]).filter(Boolean).map((intent: string, i: number) => (
+                                        <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded border border-blue-100 font-medium">
+                                            {intent}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Mechanics Section */}
+                        {step >= 3 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                                <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2">3. Operational Mechanics</h3>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="p-3 bg-stone-50 rounded border border-stone-100">
+                                        <span className="block text-stone-400 text-xs uppercase mb-1">Timeline</span>
+                                        <span className="font-bold text-stone-800">{params.expansionTimeline || '-'}</span>
+                                    </div>
+                                    <div className="p-3 bg-stone-50 rounded border border-stone-100">
+                                        <span className="block text-stone-400 text-xs uppercase mb-1">Risk Profile</span>
+                                        <span className="font-bold text-stone-800 capitalize">{params.riskTolerance || '-'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Architecture Section */}
+                        {step >= 4 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                                <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2">4. Intelligence Architecture</h3>
+                                <div>
+                                    <span className="block text-stone-400 text-xs uppercase mb-2">Active Agents</span>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(params.selectedAgents || []).map((agent: string) => (
+                                            <span key={agent} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded border border-purple-100 flex items-center gap-1">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                                                {agent}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Output Section */}
+                        {step >= 5 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                                <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2">5. Deliverable Config</h3>
+                                <div className="flex gap-2">
+                                    <span className="px-2 py-1 bg-stone-100 text-stone-600 text-xs rounded border border-stone-200">
+                                        {params.outputFormat}
                                     </span>
-                                ))}
+                                    <span className="px-2 py-1 bg-stone-100 text-stone-600 text-xs rounded border border-stone-200">
+                                        {params.reportLength}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Empty State */}
-                    {!params.country && step === 1 && (
-                        <div className="text-center py-12 text-stone-400">
-                            <Info className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                            <p className="text-xs">Select a Target Region to activate intelligence feed.</p>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            )}
-        </div>
-    );
+            </div>
+        );
+    };
 
     return (
         <div className="flex-1 w-full flex h-full bg-stone-50 font-sans text-stone-900 min-w-0">
@@ -1346,7 +1382,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             </button>
                         ) : (
                             <button 
-                                onClick={onGenerate}
+                                onClick={handleGenerateReportWithOrchestrator}
                                 className="px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1"
                             >
                                 <Play size={20} fill="currentColor" /> Initialize Nexus Core

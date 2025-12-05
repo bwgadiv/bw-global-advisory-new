@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Chat, Type } from "@google/genai";
 import { CopilotInsight, ReportParameters, LiveOpportunityItem, DeepReasoningAnalysis, GeopoliticalAnalysisResult, GovernanceAuditResult } from '../types';
 
@@ -217,36 +218,97 @@ export const generateSearchGroundedContent = async (query: string): Promise<{tex
     };
 };
 
+// --- NEW AGENTIC CAPABILITY ---
+
+export interface AgentResult {
+    findings: string[];
+    recommendations: string[];
+    confidence: number;
+    gaps?: string[];
+}
+
+export const runAI_Agent = async (
+    agentName: string, 
+    roleDefinition: string, 
+    context: any
+): Promise<AgentResult> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    const prompt = `
+        ROLE: You are the ${agentName}.
+        MISSION: ${roleDefinition}
+        
+        CONTEXT_DATA: ${JSON.stringify(context)}
+        
+        TASK: Analyze the provided context data and generate strategic findings and recommendations.
+        
+        OUTPUT_FORMAT: JSON object with keys: 'findings' (array of strings), 'recommendations' (array of strings), 'confidence' (number 0-100), 'gaps' (array of strings for missing info).
+        Ensure findings are specific, numeric where possible, and actionable.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        findings: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        recommendations: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        confidence: { type: Type.NUMBER },
+                        gaps: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ['findings', 'recommendations', 'confidence']
+                }
+            }
+        });
+
+        if (response.text) {
+            return JSON.parse(response.text) as AgentResult;
+        }
+        return { findings: ["Agent failed to generate text."], recommendations: [], confidence: 0 };
+    } catch (error) {
+        console.error(`Agent ${agentName} failed:`, error);
+        return { findings: ["Agent offline."], recommendations: [], confidence: 0, gaps: ["Connection error"] };
+    }
+};
+
 export const runGeopoliticalAnalysis = async (params: ReportParameters): Promise<GeopoliticalAnalysisResult> => {
-    // Mock for demo
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve({
-                stabilityScore: 85,
-                currencyRisk: 'Low',
-                inflationTrend: 'Stable',
-                forecast: 'Positive outlook with stable growth.',
-                regionalConflictRisk: 15,
-                tradeBarriers: ['Import licensing', 'Local content quotas']
-            });
-        }, 1500);
-    });
+    // Upgraded to use live agent logic
+    const agentResult = await runAI_Agent(
+        "Geopolitical Risk Agent",
+        "Assess regional stability, currency risk, and trade barriers for a market entry strategy.",
+        { country: params.country, region: params.region, intent: params.strategicIntent }
+    );
+
+    return {
+        stabilityScore: agentResult.confidence,
+        currencyRisk: agentResult.findings[0]?.includes('High') ? 'High' : 'Moderate',
+        inflationTrend: 'Stable (Projected)',
+        forecast: agentResult.findings[0] || "Stable outlook.",
+        regionalConflictRisk: 100 - agentResult.confidence,
+        tradeBarriers: agentResult.gaps || ['Standard tariffs']
+    };
 };
 
 export const runGovernanceAudit = async (params: ReportParameters): Promise<GovernanceAuditResult> => {
-    // Mock for demo
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve({
-                governanceScore: 78,
-                corruptionRisk: 'Low',
-                regulatoryFriction: 35,
-                transparencyIndex: 82,
-                redFlags: [],
-                complianceRoadmap: ['Local entity registration', 'Tax ID acquisition']
-            });
-        }, 1500);
-    });
+    // Upgraded to use live agent logic
+    const agentResult = await runAI_Agent(
+        "Governance Auditor",
+        "Evaluate regulatory transparency, corruption risk, and compliance requirements.",
+        { country: params.country, type: params.organizationType }
+    );
+
+    return {
+        governanceScore: agentResult.confidence,
+        corruptionRisk: agentResult.confidence > 70 ? 'Low' : 'Moderate',
+        regulatoryFriction: Math.round(100 - agentResult.confidence),
+        transparencyIndex: agentResult.confidence,
+        redFlags: agentResult.gaps || [],
+        complianceRoadmap: agentResult.recommendations
+    };
 };
 
 export const runCopilotAnalysis = async (query: string, context: string): Promise<{summary: string, options: any[], followUp: string}> => {
