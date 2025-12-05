@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, Users, Target, Globe, ShieldCheck, Zap, 
@@ -31,7 +32,9 @@ import {
     AVAILABLE_AGENTS,
     OUTPUT_FORMATS,
     LETTER_STYLES,
-    REPORT_DEPTHS
+    REPORT_DEPTHS,
+    SECTOR_DEPARTMENTS,
+    SECTOR_THEMES
 } from '../constants';
 
 // Module Imports
@@ -96,7 +99,7 @@ const SelectOrInput = ({
 }) => {
     // Determine if the current value is custom (not in options list and not empty)
     const isStandard = options.some(o => o.value === value) || value === "";
-    const [isCustomMode, setIsCustomMode] = useState(!isStandard);
+    const [isCustomMode, setIsCustomMode] = useState(!isStandard && value !== "");
 
     // If value changes externally to a standard option, switch back to select
     useEffect(() => {
@@ -257,151 +260,156 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     };
 
     // --- STEP 1: ORGANIZATION DNA ---
-    const renderStep1_Profile = () => (
-        <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
-            <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-white border border-stone-200 rounded-xl shadow-sm">
-                    <Building2 className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                    <h3 className="text-xl font-serif font-bold text-stone-900">Organization DNA</h3>
-                    <p className="text-sm text-stone-500">Comprehensive entity profiling for accurate modelling.</p>
-                </div>
-            </div>
+    const renderStep1_Profile = () => {
+        const currentSector = params.industry[0] || 'Default';
+        const sectorTheme = SECTOR_THEMES[currentSector] || SECTOR_THEMES['Default'];
+        const departmentOptions = SECTOR_DEPARTMENTS[currentSector] ? SECTOR_DEPARTMENTS[currentSector].map(d => ({ value: d, label: d })) : [];
 
-            <div className="grid grid-cols-1 gap-8">
-                {/* 1. Skill & Persona Selector */}
-                <div className="bg-stone-50 p-6 rounded-xl border border-stone-200">
-                    <label className="block text-sm font-bold text-stone-900 mb-3 uppercase tracking-wide">Analysis Perspective & Skill Level</label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {[
-                            { id: 'novice', label: 'Novice / Student', desc: 'Guided experience. I need help navigating terms.' },
-                            { id: 'experienced', label: 'Analyst / Lead', desc: 'Standard workflow. I know my requirements.' },
-                            { id: 'expert', label: 'Expert / Executive', desc: 'Advanced tools. Give me raw data & controls.' }
-                        ].map((level) => (
-                            <button 
-                                key={level.id} 
-                                onClick={() => handleParamChange('skillLevel', level.id)} 
-                                className={`p-4 rounded-xl border-2 text-left transition-all ${
-                                    params.skillLevel === level.id 
-                                    ? 'border-stone-800 bg-white shadow-md ring-1 ring-stone-800' 
-                                    : 'border-stone-200 hover:border-stone-400 text-stone-600 bg-white'
-                                }`}
-                            >
-                                <div className={`font-bold text-sm mb-1 ${params.skillLevel === level.id ? 'text-stone-900' : 'text-stone-700'}`}>{level.label}</div>
-                                <div className="text-xs text-stone-500">{level.desc}</div>
-                            </button>
-                        ))}
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 bg-white border border-stone-200 rounded-xl shadow-sm">
+                        <Building2 className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-serif font-bold text-stone-900">Organization DNA</h3>
+                        <p className="text-sm text-stone-500">Comprehensive entity profiling for accurate modelling.</p>
                     </div>
                 </div>
 
-                {/* 2. Corporate Identity */}
-                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
-                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Corporate Identity</h4>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-bold text-stone-700 block mb-1">Organization Name</label>
-                                <input 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-stone-900 outline-none"
-                                    value={params.organizationName}
-                                    onChange={(e) => handleParamChange('organizationName', e.target.value)}
-                                    placeholder="e.g. Acme Global Industries"
+                <div className="grid grid-cols-1 gap-8">
+                    {/* 1. Skill & Persona Selector */}
+                    <div className="bg-stone-50 p-6 rounded-xl border border-stone-200">
+                        <label className="block text-sm font-bold text-stone-900 mb-3 uppercase tracking-wide">Analysis Perspective & Skill Level</label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {[
+                                { id: 'novice', label: 'Novice / Student', desc: 'Guided experience. I need help navigating terms.' },
+                                { id: 'experienced', label: 'Analyst / Lead', desc: 'Standard workflow. I know my requirements.' },
+                                { id: 'expert', label: 'Expert / Executive', desc: 'Advanced tools. Give me raw data & controls.' }
+                            ].map((level) => (
+                                <button 
+                                    key={level.id} 
+                                    onClick={() => handleParamChange('skillLevel', level.id)} 
+                                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                                        params.skillLevel === level.id 
+                                        ? 'border-stone-800 bg-white shadow-md ring-1 ring-stone-800' 
+                                        : 'border-stone-200 hover:border-stone-400 text-stone-600 bg-white'
+                                    }`}
+                                >
+                                    <div className={`font-bold text-sm mb-1 ${params.skillLevel === level.id ? 'text-stone-900' : 'text-stone-700'}`}>{level.label}</div>
+                                    <div className="text-xs text-stone-500">{level.desc}</div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 2. Corporate Identity */}
+                    <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
+                        <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Corporate Identity</h4>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <SelectOrInput
+                                    label="Entity Type"
+                                    value={params.organizationType}
+                                    options={ORGANIZATION_TYPES.map(t => ({ value: t, label: t }))}
+                                    onChange={(val) => handleParamChange('organizationType', val)}
+                                    placeholder="e.g. Special Purpose Vehicle"
+                                />
+                                <SelectOrInput
+                                    label="Primary Sector"
+                                    value={params.industry[0] || ''}
+                                    options={INDUSTRIES.map(i => ({ value: i.title, label: i.title }))}
+                                    onChange={(val) => handleParamChange('industry', [val])}
+                                    placeholder="e.g. Clean Energy"
                                 />
                             </div>
-                            
-                            <SelectOrInput
-                                label="Entity Type"
-                                value={params.organizationType}
-                                options={ORGANIZATION_TYPES.map(t => ({ value: t, label: t }))}
-                                onChange={(val) => handleParamChange('organizationType', val)}
-                                placeholder="e.g. Special Purpose Vehicle"
-                            />
-                        </div>
-                        <div className="space-y-4">
-                            <SelectOrInput
-                                label="Primary Sector"
-                                value={params.industry[0] || ''}
-                                options={INDUSTRIES.map(i => ({ value: i.title, label: i.title }))}
-                                onChange={(val) => handleParamChange('industry', [val])}
-                                placeholder="e.g. Clean Energy"
-                            />
-                            <div>
-                                <label className="text-xs font-bold text-stone-700 block mb-1">Headquarters Address</label>
-                                <input 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none"
-                                    value={params.organizationAddress || ''}
-                                    onChange={(e) => handleParamChange('organizationAddress', e.target.value)}
-                                    placeholder="123 Strategic Ave, Global City"
-                                />
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-stone-700 block mb-1">Organization Name</label>
+                                    <input 
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-stone-900 outline-none"
+                                        value={params.organizationName}
+                                        onChange={(e) => handleParamChange('organizationName', e.target.value)}
+                                        placeholder="e.g. Acme Global Industries"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-stone-700 block mb-1">Headquarters Address</label>
+                                    <input 
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none"
+                                        value={params.organizationAddress || ''}
+                                        onChange={(e) => handleParamChange('organizationAddress', e.target.value)}
+                                        placeholder="e.g. 123 Strategic Ave, Global City"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* 3. Operational Context & Role */}
-                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
-                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2 flex justify-between">
-                        <span>Operational Context & User Role</span>
-                    </h4>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-5">
-                            <h5 className="text-sm font-bold text-stone-900 border-l-2 border-stone-300 pl-2">Organizational Scale</h5>
-                            
-                            <SelectOrInput 
-                                label="Annual Revenue"
-                                value={params.revenueBand || ''}
-                                options={ORGANIZATION_SCALE_BANDS.revenue}
-                                onChange={(val) => handleParamChange('revenueBand', val)}
-                                placeholder="e.g. $2.5M or 'Pre-Revenue'"
-                            />
+                    {/* 3. Operational Context & Role */}
+                    <div className={`p-6 rounded-xl border shadow-sm space-y-6 transition-colors duration-500 ${sectorTheme.bg} ${sectorTheme.border}`}>
+                        <h4 className={`text-xs font-bold uppercase tracking-widest border-b pb-2 flex justify-between items-center ${sectorTheme.text} border-stone-200/50`}>
+                            <span>Operational Context & User Role</span>
+                            <span className="text-xl">{sectorTheme.icon}</span>
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-5">
+                                <h5 className={`text-sm font-bold ${sectorTheme.text} border-l-2 border-stone-300 pl-2`}>Organizational Scale</h5>
+                                
+                                <SelectOrInput 
+                                    label="Annual Revenue"
+                                    value={params.revenueBand || ''}
+                                    options={ORGANIZATION_SCALE_BANDS.revenue}
+                                    onChange={(val) => handleParamChange('revenueBand', val)}
+                                    placeholder="e.g. $2.5M or 'Pre-Revenue'"
+                                />
 
-                            <SelectOrInput 
-                                label="Global Headcount"
-                                value={params.headcountBand || ''}
-                                options={ORGANIZATION_SCALE_BANDS.headcount}
-                                onChange={(val) => handleParamChange('headcountBand', val)}
-                                placeholder="e.g. 15 FTEs"
-                            />
-                        </div>
+                                <SelectOrInput 
+                                    label="Global Headcount"
+                                    value={params.headcountBand || ''}
+                                    options={ORGANIZATION_SCALE_BANDS.headcount}
+                                    onChange={(val) => handleParamChange('headcountBand', val)}
+                                    placeholder="e.g. 15 FTEs"
+                                />
+                            </div>
 
-                        <div className="space-y-5">
-                            <h5 className="text-sm font-bold text-stone-900 border-l-2 border-stone-300 pl-2">Your Role Context</h5>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-5">
+                                <h5 className={`text-sm font-bold ${sectorTheme.text} border-l-2 border-stone-300 pl-2`}>Your Role Context</h5>
                                 <div>
                                     <label className="text-xs font-bold text-stone-700 block mb-1">Your Name</label>
                                     <input 
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" 
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-stone-900" 
                                         value={params.userName} 
                                         onChange={e => handleParamChange('userName', e.target.value)} 
-                                        placeholder="Name"
+                                        placeholder="e.g. John Doe"
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-xs font-bold text-stone-700 block mb-1">Department</label>
-                                    <input 
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" 
-                                        value={params.userDepartment} 
-                                        onChange={e => handleParamChange('userDepartment', e.target.value)}
-                                        placeholder="Dept" 
-                                    />
-                                </div>
+                                
+                                {/* Dynamic Department Selector */}
+                                <SelectOrInput 
+                                    label="Department / Unit"
+                                    value={params.userDepartment}
+                                    options={departmentOptions}
+                                    onChange={(val) => handleParamChange('userDepartment', val)}
+                                    placeholder="e.g. Strategic Planning"
+                                />
+
+                                <SelectOrInput 
+                                    label="Role Perspective (Authority)"
+                                    value={params.decisionAuthority || ''}
+                                    options={DECISION_AUTHORITY_LEVELS}
+                                    onChange={(val) => handleParamChange('decisionAuthority', val)}
+                                    placeholder="e.g. Consultant, Owner, Advisor"
+                                />
                             </div>
-                            <SelectOrInput 
-                                label="Role Perspective (Authority)"
-                                value={params.decisionAuthority || ''}
-                                options={DECISION_AUTHORITY_LEVELS}
-                                onChange={(val) => handleParamChange('decisionAuthority', val)}
-                                placeholder="e.g. Consultant, Owner, Advisor"
-                            />
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     // --- STEP 2: STRATEGIC MANDATE ---
     const renderStep2_Mandate = () => {

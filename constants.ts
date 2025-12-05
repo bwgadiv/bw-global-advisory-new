@@ -1,33 +1,34 @@
+
 import { ReportParameters, GlobalCityData } from './types';
 
 export const INITIAL_PARAMETERS: ReportParameters = {
   // Identity
-  reportName: 'New Strategy Analysis',
-  userName: 'Guest User',
-  userDepartment: 'Strategy',
+  reportName: '',
+  userName: '',
+  userDepartment: '',
   skillLevel: 'experienced',
-  userCountry: 'Global',
+  userCountry: '',
   userTier: 'Tier 1',
   
   // Organization
   organizationName: '',
   organizationType: 'Private Enterprise',
-  organizationSubType: 'Corporation',
-  region: 'Global',
+  organizationSubType: '',
+  region: '',
   country: '',
-  industry: ['Technology'],
+  industry: [],
   customIndustry: '',
   tier: [],
   
   // Strategy
-  strategicIntent: 'Enter Market',
+  strategicIntent: '',
   strategicMode: 'analysis',
   problemStatement: '',
   idealPartnerProfile: '',
   analysisTimeframe: '12 months',
   strategicObjectives: [],
-  specificOpportunity: '', // NEW
-  targetIncentives: [], // NEW
+  specificOpportunity: '', 
+  targetIncentives: [], 
   
   // Execution
   relationshipStage: 'New',
@@ -66,10 +67,43 @@ export const INITIAL_PARAMETERS: ReportParameters = {
   opportunityScore: { totalScore: 0, marketPotential: 0, riskFactors: 0 },
 };
 
+export const SECTOR_THEMES: Record<string, { bg: string, border: string, text: string, icon: string }> = {
+    'Banking & Finance': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', icon: '💰' },
+    'Technology': { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-800', icon: '⚡' },
+    'Government': { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-800', icon: '🏛️' },
+    'Healthcare': { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-800', icon: '⚕️' },
+    'Energy': { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', icon: '🔋' },
+    'Default': { bg: 'bg-stone-50', border: 'border-stone-200', text: 'text-stone-800', icon: '🏢' }
+};
+
+export const SECTOR_DEPARTMENTS: Record<string, string[]> = {
+    'Banking & Finance': [
+        'Investment Banking Division', 'Risk Management', 'Compliance & Regulatory', 'Private Wealth', 
+        'Corporate Lending', 'Capital Markets', 'Fintech Innovation', 'Treasury'
+    ],
+    'Technology': [
+        'Engineering / R&D', 'Product Management', 'Strategic Partnerships', 'Sales & Revenue', 
+        'Data Science', 'Cloud Infrastructure', 'Cybersecurity'
+    ],
+    'Government': [
+        'Ministry of Economy', 'Trade & Investment Agency', 'Foreign Affairs', 'Infrastructure Development', 
+        'Policy & Planning', 'Regulatory Oversight'
+    ],
+    'Healthcare': [
+        'Clinical Operations', 'Medical Affairs', 'R&D (Pharma)', 'Supply Chain', 'Hospital Administration', 'Public Health'
+    ],
+    'Energy': [
+        'Exploration & Production', 'Renewables Division', 'Grid Operations', 'Sustainability / ESG', 'Project Finance'
+    ],
+    'Manufacturing': [
+        'Operations', 'Supply Chain', 'Quality Assurance', 'Plant Management', 'Procurement', 'Product Design'
+    ]
+};
+
 export const SECTORS_LIST = [
   'Government',
   'Technology',
-  'Banking',
+  'Banking & Finance',
   'Education',
   'Business Services',
   'Infrastructure',
@@ -80,16 +114,17 @@ export const SECTORS_LIST = [
   'Agriculture',
   'Mining',
   'Tourism',
-  'Real Estate'
+  'Real Estate',
+  'Non-Profit / NGO'
 ];
 
 export const ORGANIZATION_TYPES = [
     'Private Enterprise',
+    'Financial Institution',
     'Government / Public Sector',
     'Sovereign Wealth Fund',
     'NGO / Non-Profit',
     'Academic / Research Institution',
-    'Financial Institution',
     'Multilateral Organization',
     'Family Office',
     'Startup / Scaleup',
@@ -97,7 +132,8 @@ export const ORGANIZATION_TYPES = [
 ];
 
 export const ORGANIZATION_SUBTYPES: Record<string, string[]> = {
-    'Private Enterprise': ['Corporation', 'Startup', 'SME', 'Conglomerate', 'Family Office', 'PE Firm'],
+    'Private Enterprise': ['Corporation', 'Startup', 'SME', 'Conglomerate', 'PE Firm'],
+    'Financial Institution': ['Investment Bank', 'Commercial Bank', 'Asset Manager', 'Insurance', 'Fintech'],
     'Government / Public Sector': ['Ministry', 'Agency', 'Local Government', 'Regulator', 'State-Owned Enterprise'],
     'Sovereign Wealth Fund': ['National', 'State', 'Pension', 'Strategic Investment Fund'],
     'NGO / Non-Profit': ['Foundation', 'Association', 'Charity', 'Think Tank', 'Development Finance Institution'],
@@ -190,7 +226,7 @@ export const SECTOR_OPPORTUNITIES: Record<string, string[]> = {
         'Aerospace Component Mfg',
         'Green Steel / Aluminum Plant'
     ],
-    'Finance': [
+    'Banking & Finance': [
         'Digital Bank Licensing',
         'SME Credit Guarantee Fund',
         'National Payment Switch',
@@ -253,7 +289,7 @@ export const INDUSTRY_NICHES: Record<string, string[]> = {
     'Technology': ['AI/ML', 'SaaS', 'Fintech', 'Cybersecurity', 'IoT', 'Cloud', 'Blockchain', 'Quantum', 'Robotics'],
     'Energy': ['Solar', 'Wind', 'Oil & Gas', 'Nuclear', 'Grid', 'Hydrogen', 'Bioenergy', 'Geothermal'],
     'Healthcare': ['Pharma', 'Biotech', 'Medtech', 'Hospitals', 'Digital Health', 'Diagnostics'],
-    'Finance': ['Banking', 'Insurance', 'Wealth Management', 'PE/VC', 'Capital Markets', 'Payments'],
+    'Banking & Finance': ['Investment Banking', 'Retail Banking', 'Insurance', 'Wealth Management', 'PE/VC', 'Capital Markets', 'Payments'],
     'Manufacturing': ['Automotive', 'Aerospace', 'Electronics', 'Chemicals', 'Textiles', 'FMCG'],
     'Government': ['Defense', 'Infrastructure', 'Education', 'Policy', 'Smart City', 'Public Health'],
     'Infrastructure': ['Transport', 'Utilities', 'Real Estate', 'Logistics', 'Water', 'Waste'],
@@ -589,18 +625,19 @@ export const AVAILABLE_MODULES = [
 ];
 
 export const INDUSTRIES = [
-    { id: 'tech', title: 'Technology & Software' },
-    { id: 'fintech', title: 'Financial Services' },
-    { id: 'energy', title: 'Energy & Renewables' },
-    { id: 'healthcare', title: 'Healthcare & Pharma' },
-    { id: 'infra', title: 'Infrastructure & Construction' },
-    { id: 'retail', title: 'Retail & E-commerce' },
-    { id: 'agri', title: 'Agriculture & Food' },
-    { id: 'mfg', title: 'Manufacturing & Industry' },
-    { id: 'mining', title: 'Mining & Metals' },
-    { id: 'transport', title: 'Transport & Logistics' },
-    { id: 'tourism', title: 'Tourism & Hospitality' },
-    { id: 'gov', title: 'Government & Defense' }
+    { id: 'Technology', title: 'Technology & Software' },
+    { id: 'Banking & Finance', title: 'Banking & Financial Services' },
+    { id: 'Energy', title: 'Energy & Renewables' },
+    { id: 'Healthcare', title: 'Healthcare & Pharma' },
+    { id: 'Infrastructure', title: 'Infrastructure & Construction' },
+    { id: 'Retail', title: 'Retail & E-commerce' },
+    { id: 'Agriculture', title: 'Agriculture & Food' },
+    { id: 'Manufacturing', title: 'Manufacturing & Industry' },
+    { id: 'Mining', title: 'Mining & Metals' },
+    { id: 'Transport', title: 'Transport & Logistics' },
+    { id: 'Tourism', title: 'Tourism & Hospitality' },
+    { id: 'Government', title: 'Government & Defense' },
+    { id: 'Non-Profit', title: 'Non-Profit / NGO' }
 ];
 
 export const GLOBAL_CITY_DATABASE: Record<string, GlobalCityData> = {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ReportParameters, 
@@ -108,14 +109,16 @@ const App: React.FC = () => {
             ...INITIAL_PARAMETERS, 
             id: Math.random().toString(36).substr(2, 9), 
             createdAt: Date.now().toString(),
-            // STRICT FRESH START
+            // STRICT FRESH START with proper empty values for placeholders
             organizationName: '',
+            userName: '',
+            userDepartment: '',
             country: '',
             strategicIntent: '',
             problemStatement: '',
             industry: [],
             region: '',
-            organizationType: 'Private Enterprise',
+            organizationType: '', // Reset type
             organizationSubType: ''
         };
         setParams(newParams);
