@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CopilotInsight } from '../types';
-import { Lightbulb, AlertTriangle, Zap, CheckCircle2, Send, MessageSquare } from 'lucide-react';
+import { Lightbulb, AlertTriangle, Zap, CheckCircle2, Send, MessageSquare, ListTodo } from 'lucide-react';
 
 interface Props {
   insights: CopilotInsight[];
@@ -46,6 +46,14 @@ export default function RightSidebar({ insights, isCopilotLoading, onAskCopilot 
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+        {/* Gatekeeper Context Awareness */}
+        <div className="bg-stone-900 text-stone-300 p-4 rounded-xl text-xs space-y-2 border border-stone-800">
+            <div className="flex items-center gap-2 font-bold text-bw-gold uppercase tracking-wider mb-1">
+                <ListTodo className="w-3 h-3" /> Gatekeeper Active
+            </div>
+            <p>I am monitoring the checklist state. Ensure "Organization Name" and "Target Region" are satisfied to proceed.</p>
+        </div>
+
         {insights.length === 0 ? (
             <div className="p-6 text-center border-2 border-dashed border-stone-200 rounded-xl mt-4">
                 <Lightbulb className="w-8 h-8 text-stone-300 mx-auto mb-2" />

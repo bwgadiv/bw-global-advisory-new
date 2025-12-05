@@ -6,9 +6,9 @@ import {
   Briefcase, Clock, AlertTriangle, Layers,
   ArrowRight, Search, Plus, Trash2, MapPin,
   TrendingUp, BarChart3, Scale, Info, Building2, MousePointerClick, Flag, History, PenTool,
-  Network, Cpu, MessageSquare, Mic, Share2
+  Network, Cpu, MessageSquare, Mic, Share2, ListTodo
 } from 'lucide-react';
-import { ReportParameters, ReportData, GenerationPhase, LiveOpportunityItem, ReportSection } from '../types';
+import { ReportParameters, ReportData, GenerationPhase, LiveOpportunityItem, ReportSection, NeuroSymbolicState } from '../types';
 import { 
     ORGANIZATION_TYPES, 
     REGIONS_AND_COUNTRIES, 
@@ -45,8 +45,11 @@ import { AddOpportunityModal } from './AddOpportunityModal';
 import DueDiligenceSuite from './DueDiligenceSuite';
 import GlobalPartnerSearch from './GlobalPartnerSearch';
 import { ComparativeAnalysis } from './ComparativeAnalysis';
-import ScenarioSimulator from './ScenarioSimulator'; // NEW
-import CompetitorMap from './CompetitorMap'; // NEW
+import ScenarioSimulator from './ScenarioSimulator'; 
+import CompetitorMap from './CompetitorMap'; 
+import { FormulaBuilder } from './FormulaBuilder'; // NEW
+import { ChecklistGatekeeper } from './ChecklistGatekeeper'; // NEW
+import { INITIAL_CHECKLIST, INITIAL_FORMULAS, NeuroSymbolicEngine } from '../services/ruleEngine'; // NEW
 
 // Icons
 import { RocketIcon, MatchMakerIcon, GlobeIcon, BarChart } from './Icons';
@@ -172,10 +175,28 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     const [activeModuleConfig, setActiveModuleConfig] = useState<string | null>(null);
     const [customIncentive, setCustomIncentive] = useState('');
     const [resultTab, setResultTab] = useState<'dossier' | 'simulation' | 'market'>('dossier');
+    const [showGatekeeper, setShowGatekeeper] = useState(false); // NEW State for Gatekeeper Panel
     
     // Feature States for Dynamic Workflow
     const [dueDiligenceTarget, setDueDiligenceTarget] = useState<string>('');
     const [showPartnerSearch, setShowPartnerSearch] = useState(false);
+
+    // Initialize NeuroSymbolic State
+    const [neuroState, setNeuroState] = useState<NeuroSymbolicState>({
+        checklist: INITIAL_CHECKLIST,
+        formulas: INITIAL_FORMULAS,
+        variableStore: {}
+    });
+
+    // EFFECT: Run Rule Engine whenever Params Change
+    useEffect(() => {
+        const newState = NeuroSymbolicEngine.validateGatekeeper(params, neuroState);
+        setNeuroState(newState);
+        // Sync back to global params if needed (optional)
+        if(JSON.stringify(newState) !== JSON.stringify(params.neuroSymbolicState)) {
+            setParams({...params, neuroSymbolicState: newState});
+        }
+    }, [params.organizationName, params.country, params.industry, params.strategicIntent, params.revenueBand]); // Watch key fields
 
     // Auto-advance logic update
     useEffect(() => {
@@ -522,7 +543,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
         );
     };
 
-    // --- STEP 3: MECHANICS & CALIBRATION ---
+    // --- STEP 3: MECHANICS & CALIBRATION (WITH FORMULA BUILDER) ---
     const renderStep3_Calibration = () => (
         <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
             <div className="flex items-center gap-4 mb-4">
@@ -530,57 +551,48 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     <Scale className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                    <h3 className="text-xl font-serif font-bold text-stone-900">Operational Mechanics</h3>
-                    <p className="text-sm text-stone-500">Fine-tune the IVAS and SPI algorithms with real-world constraints.</p>
+                    <h3 className="text-xl font-serif font-bold text-stone-900">Operational Mechanics & Logic</h3>
+                    <p className="text-sm text-stone-500">Fine-tune the IVAS algorithms and define custom math rules.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Financial & Timeline */}
-                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
-                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Financial Architecture</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Budget Cap</label>
-                            <input 
-                                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
-                                placeholder="$50M USD"
-                                value={params.calibration?.constraints?.budgetCap || ''}
-                                onChange={(e) => setParams({
-                                    ...params,
-                                    calibration: { ...params.calibration, constraints: { ...params.calibration?.constraints, budgetCap: e.target.value } }
-                                })}
-                            />
+                <div className="space-y-8">
+                    <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
+                        <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Financial Architecture</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-stone-700 block mb-1">Budget Cap</label>
+                                <input 
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                                    placeholder="$50M USD"
+                                    value={params.calibration?.constraints?.budgetCap || ''}
+                                    onChange={(e) => setParams({
+                                        ...params,
+                                        calibration: { ...params.calibration, constraints: { ...params.calibration?.constraints, budgetCap: e.target.value } }
+                                    })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-stone-700 block mb-1">Time Horizon</label>
+                                <select 
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                                    value={params.expansionTimeline}
+                                    onChange={(e) => handleParamChange('expansionTimeline', e.target.value)}
+                                >
+                                    {TIME_HORIZONS.map(t => <option key={t.value} value={t.label}>{t.label}</option>)}
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Time Horizon</label>
-                            <select 
-                                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
-                                value={params.expansionTimeline}
-                                onChange={(e) => handleParamChange('expansionTimeline', e.target.value)}
-                            >
-                                {TIME_HORIZONS.map(t => <option key={t.value} value={t.label}>{t.label}</option>)}
-                            </select>
-                        </div>
                     </div>
-                    <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-1">Funding Source</label>
-                        <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.fundingSource} onChange={e => handleParamChange('fundingSource', e.target.value)}>
-                            <option value="">Select Source...</option>
-                            {FUNDING_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-1">Procurement Mode</label>
-                        <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.procurementMode} onChange={e => handleParamChange('procurementMode', e.target.value)}>
-                            <option value="">Select Mode...</option>
-                            {PROCUREMENT_MODES.map(m => <option key={m.value} value={m.label}>{m.label}</option>)}
-                        </select>
-                    </div>
+
+                    {/* NEW: FORMULA BUILDER INTEGRATION */}
+                    <FormulaBuilder state={neuroState} onUpdate={setNeuroState} />
                 </div>
 
                 {/* Risk & Sensitivities */}
-                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
+                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5 h-fit">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Risk & Sensitivities</h4>
                     <div>
                         <label className="text-xs font-bold text-stone-700 block mb-3">Risk Appetite</label>
@@ -928,6 +940,138 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             </div>
                         )}
                     </div>
+                </div>
+            )}
+        </div>
+    );
+
+    // --- LIVE PREVIEW COMPONENT ---
+    const LivePreview = () => (
+        <div className="bg-stone-50 border-l border-stone-200 h-full flex flex-col">
+            <div className="p-6 border-b border-stone-200 bg-white sticky top-0 z-10 flex justify-between items-center">
+                <div>
+                    <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Live Intelligence Feed</h3>
+                    <div className="flex gap-2 mt-1">
+                        {params.country && <span className="text-[10px] bg-stone-100 px-2 py-1 rounded text-stone-600 font-bold border border-stone-200">{params.country}</span>}
+                    </div>
+                </div>
+                <button 
+                    onClick={() => setShowGatekeeper(!showGatekeeper)}
+                    className={`p-2 rounded hover:bg-stone-100 transition-colors ${showGatekeeper ? 'text-bw-gold bg-stone-900 hover:bg-black' : 'text-stone-400'}`}
+                    title="Toggle Gatekeeper"
+                >
+                    <ListTodo className="w-5 h-5" />
+                </button>
+            </div>
+
+            {/* GATEKEEPER OVERLAY */}
+            {showGatekeeper ? (
+                <div className="flex-1 overflow-hidden p-4">
+                    <ChecklistGatekeeper 
+                        state={neuroState} 
+                        onItemClick={(id) => {
+                            // Logic to focus specific field could go here
+                            console.log("Focusing requirement:", id);
+                        }} 
+                    />
+                </div>
+            ) : (
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* Dynamic Header Based on Input */}
+                    <div className="space-y-1">
+                        <h2 className="text-lg font-serif font-bold text-stone-900 leading-tight">
+                            {params.organizationName || 'Organization Name'}
+                        </h2>
+                        <p className="text-xs text-stone-500 truncate">{params.strategicIntent || 'Define Strategic Intent...'}</p>
+                    </div>
+                    
+                    {/* 0. Due Diligence (If active) */}
+                    {dueDiligenceTarget && (
+                        <div className="animate-in fade-in slide-in-from-right-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                <span className="text-xs font-bold text-blue-800 uppercase">Live Due Diligence</span>
+                            </div>
+                            <DueDiligenceSuite partnerName={dueDiligenceTarget} partnerType="Potential Partner" />
+                        </div>
+                    )}
+
+                    {/* 1. Regional Context Card */}
+                    {params.country && cityData && (
+                        <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                            <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
+                                <GlobeIcon className="w-3 h-3 text-blue-500" /> Regional Context: {params.country}
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="p-2 bg-stone-50 rounded border border-stone-100">
+                                    <div className="text-stone-400 mb-1">GDP (Est.)</div>
+                                    <div className="font-bold text-stone-800">${cityData.gdp.totalBillionUSD}B</div>
+                                </div>
+                                <div className="p-2 bg-stone-50 rounded border border-stone-100">
+                                    <div className="text-stone-400 mb-1">Ease of Biz</div>
+                                    <div className="font-bold text-stone-800">{cityData.businessEnvironment.easeOfDoingBusiness}/10</div>
+                                </div>
+                                <div className="p-2 bg-stone-50 rounded border border-stone-100">
+                                    <div className="text-stone-400 mb-1">Infra Score</div>
+                                    <div className="font-bold text-stone-800">{cityData.infrastructure.digital}/10</div>
+                                </div>
+                                <div className="p-2 bg-stone-50 rounded border border-stone-100">
+                                    <div className="text-stone-400 mb-1">Talent</div>
+                                    <div className="font-bold text-stone-800">{cityData.talentPool.skillsAvailability}/10</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 2. Calculated Metrics Preview */}
+                    {step >= 2 && (
+                        <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                            <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
+                                <BarChart className="w-3 h-3 text-green-500" /> Projected Metrics
+                            </h4>
+                            <div className="space-y-3">
+                                <div>
+                                    <div className="flex justify-between text-xs mb-1">
+                                        <span className="text-stone-500">Risk Profile</span>
+                                        <span className="font-bold text-stone-900">{params.riskTolerance || 'N/A'}</span>
+                                    </div>
+                                    <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                                        <div className={`h-full ${params.riskTolerance === 'High' ? 'bg-red-500 w-3/4' : params.riskTolerance === 'Medium' ? 'bg-yellow-500 w-1/2' : 'bg-green-500 w-1/4'}`}></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between text-xs mb-1">
+                                        <span className="text-stone-500">Timeline</span>
+                                        <span className="font-bold text-stone-900">{params.expansionTimeline || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 3. Architecture Stack */}
+                    {step >= 4 && (params.selectedModules || []).length > 0 && (
+                        <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                            <h4 className="text-xs font-bold text-stone-800 uppercase mb-3 flex items-center gap-2">
+                                <Layers className="w-3 h-3 text-purple-500" /> Active Architecture
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                                {(params.selectedModules || []).map(m => (
+                                    <span key={m} className="px-2 py-1 bg-stone-100 border border-stone-200 rounded text-[10px] font-bold text-stone-600">
+                                        {ENGINE_CATALOG.find(e => e.id === m)?.label || m}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!params.country && step === 1 && (
+                        <div className="text-center py-12 text-stone-400">
+                            <Info className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                            <p className="text-xs">Select a Target Region to activate intelligence feed.</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

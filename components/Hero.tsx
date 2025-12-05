@@ -99,15 +99,15 @@ export const Hero: React.FC<HeroProps> = ({ onOpenSystem }) => {
 
                         {/* HUD */}
                         <div className="absolute top-4 left-4 right-4 flex justify-between text-[10px] font-mono text-gray-500 uppercase">
-                            <span>Sector Scan: Active</span>
+                            <span>Pattern Scan: 100-Year Depth</span>
                             <span>{scanLine}% Complete</span>
                         </div>
                         
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="text-center p-6 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg max-w-xs">
                                 <Activity className="w-8 h-8 text-bw-gold mx-auto mb-2" />
-                                <div className="text-white font-bold text-lg">90% Capital Concentration</div>
-                                <div className="text-xs text-gray-400 mt-1">Detecting Structural Inefficiency</div>
+                                <div className="text-white font-bold text-lg">Deterministic Economic Physics</div>
+                                <div className="text-xs text-gray-400 mt-1">Calculating Asymmetric Advantage</div>
                             </div>
                         </div>
                     </div>

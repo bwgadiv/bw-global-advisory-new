@@ -39,7 +39,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                             The world's most advanced economic intelligence engine.
                         </h1>
                         <p className="text-gray-400 text-lg leading-relaxed">
-                            Deploy autonomous agents. Simulate market outcomes. Calculate success probability based on 100 years of historical data.
+                            Deploy autonomous agents. Deterministically model economic physics. Calculate success probability based on 100 years of historical data.
                         </p>
                     </div>
 
@@ -84,7 +84,11 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                             
                             <p><strong className="text-stone-900 block mb-1">4. Financial & Operational Models</strong> The SCF (Strategic Cash Flow) and IVAS (Investment Viability Assessment) models are simulations based on provided Operational Scale and historical benchmarks. They do not constitute financial advice and scale dynamically with input granularity.</p>
                             
-                            <p><strong className="text-stone-900 block mb-1">5. Historical Context & Predictive Limits</strong> The system utilizes a dataset spanning 2015-2025 to identify failure patterns. Users acknowledge that past performance is used for predictive modeling only. Black swan events outside the training data may impact accuracy.</p>
+                            <p><strong className="text-stone-900 block mb-1">5. Historical Context & Predictive Limits</strong> The system utilizes a proprietary dataset spanning ~1925-2025 (100 Years) to identify long-wave economic cycles and failure patterns. Users acknowledge that past performance is used for predictive modeling only. Black swan events outside the training data may impact accuracy.</p>
+                            
+                            <p><strong className="text-stone-900 block mb-1">6. Autonomous Agent Liability</strong> The system deploys semi-autonomous AI agents ("Scout", "Diplomat", "Strategist") to construct intelligence dossiers. While these agents operate within strict ethical guardrails, their outputs are generative. Users must validate critical data points.</p>
+                            
+                            <p><strong className="text-stone-900 block mb-1">7. Neuro-Symbolic Logic Gatekeepers</strong> The "Gatekeeper Protocol" enforces logical consistency checks on user inputs. The system reserves the right to halt analysis if inputs contradict established economic physics or fail the 100-Point checklist, ensuring integrity of the final dossier.</p>
                         </div>
                     </div>
 

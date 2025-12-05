@@ -69,8 +69,16 @@ export const Footer: React.FC = () => {
             <p>The SCF (Strategic Cash Flow) and IVAS (Investment Viability Assessment) models are simulations based on provided Operational Scale and historical benchmarks. They do not constitute financial advice and scale dynamically with input granularity.</p>
           </div>
           <div>
-            <strong className="text-white block mb-1">5. Historical Context & Predictive Limits</strong>
-            <p>The system utilizes a dataset spanning 2015-2025 to identify failure patterns. Users acknowledge that past performance is used for predictive modeling only. Black swan events outside the training data may impact accuracy.</p>
+            <strong className="text-white block mb-1">5. Historical Context & Deep-Wave Data</strong>
+            <p>The system utilizes a proprietary dataset spanning ~1925-2025 (100 Years) to identify long-wave economic cycles and failure patterns. Users acknowledge that while this deep-context historical data provides robust precedent analysis, it does not guarantee future performance in volatile markets. Past performance is a calculated indicator, not a guarantee of future results.</p>
+          </div>
+          <div>
+            <strong className="text-white block mb-1">6. Autonomous Agent Liability</strong>
+            <p>The system deploys semi-autonomous AI agents ("Scout", "Diplomat", "Strategist") to construct intelligence dossiers. While these agents operate within strict ethical guardrails, their outputs are generative. Users must validate critical data points, particularly regarding real-time regulatory changes.</p>
+          </div>
+          <div>
+            <strong className="text-white block mb-1">7. Neuro-Symbolic Logic Gatekeepers</strong>
+            <p>The "Gatekeeper Protocol" enforces logical consistency checks on user inputs. The system reserves the right to halt analysis if inputs contradict established economic physics or fail the 100-Point checklist, ensuring integrity of the final dossier.</p>
           </div>
         </div>
       </div>

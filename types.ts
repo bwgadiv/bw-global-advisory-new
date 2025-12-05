@@ -2,6 +2,39 @@ import React from 'react';
 
 export type SkillLevel = 'novice' | 'experienced' | 'expert';
 
+// --- NEURO-SYMBOLIC TYPES ---
+
+export type ChecklistStatus = 'pending' | 'satisfied' | 'failed' | 'skipped';
+
+export interface ChecklistItem {
+    id: string;
+    label: string;
+    category: 'Identity' | 'Strategy' | 'Financial' | 'Risk' | 'Compliance';
+    status: ChecklistStatus;
+    value?: any;
+    required: boolean;
+    description: string;
+    validationRule?: string; // e.g., "value > 1000"
+    dependencies?: string[]; // IDs of other items that must be satisfied first
+}
+
+export interface DynamicFormula {
+    id: string;
+    name: string;
+    expression: string; // e.g., "revenue * 0.2 - risk_score"
+    variables: string[]; // ["revenue", "risk_score"]
+    description?: string;
+    isSystem?: boolean; // If true, cannot be deleted
+}
+
+export interface NeuroSymbolicState {
+    checklist: ChecklistItem[];
+    formulas: DynamicFormula[];
+    variableStore: Record<string, number | string | boolean>; // The "Memory" of the logic engine
+}
+
+// --- EXISTING TYPES ---
+
 export interface Service {
   id: string;
   title: string;
@@ -146,6 +179,9 @@ export interface ReportParameters {
     capabilitiesHave?: string[];
     capabilitiesNeed?: string[];
   };
+
+  // --- NEW: Neuro-Symbolic Integration ---
+  neuroSymbolicState?: NeuroSymbolicState;
 }
 
 export interface GlobalCityData {
