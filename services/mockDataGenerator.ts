@@ -89,7 +89,7 @@ export const generateBenchmarkData = (count: number = 100): ReportParameters[] =
             region: 'Global', 
             industry: [industry],
             
-            strategicIntent: getRandomItem(MISSION_TYPES).label,
+            strategicIntent: [getRandomItem(MISSION_TYPES).label],
             strategicMode: 'execution',
             
             riskTolerance: risk,

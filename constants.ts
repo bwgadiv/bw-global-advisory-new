@@ -12,7 +12,7 @@ export const INITIAL_PARAMETERS: ReportParameters = {
   
   // Organization
   organizationName: '',
-  organizationType: '', // Cleared for placeholder
+  organizationType: '', 
   organizationSubType: '',
   region: '',
   country: '',
@@ -21,7 +21,7 @@ export const INITIAL_PARAMETERS: ReportParameters = {
   tier: [],
   
   // Strategy
-  strategicIntent: '',
+  strategicIntent: [], // Updated to array
   strategicMode: 'analysis',
   problemStatement: '',
   idealPartnerProfile: '',
@@ -39,6 +39,7 @@ export const INITIAL_PARAMETERS: ReportParameters = {
   riskTolerance: 'Medium',
   expansionTimeline: '1-2 Years',
   partnershipSupportNeeds: [],
+  targetCounterpartType: [], // Updated to array
 
   // Metadata
   id: '',
@@ -186,6 +187,76 @@ export const GLOBAL_ROLES = [
     'Student / Intern'
 ];
 
+export const GLOBAL_STRATEGIC_INTENTS = [
+    'Market Entry (Greenfield)',
+    'Market Entry (Acquisition)',
+    'Strategic Partnership / Alliance',
+    'Joint Venture Formation',
+    'Supply Chain Diversification',
+    'Technology Transfer / R&D',
+    'Government Relations / Advocacy',
+    'Capital Deployment / Investment',
+    'Cost Optimization / Offshoring',
+    'Talent Acquisition / Hub',
+    'Regulatory Compliance / Licensing',
+    'Crisis Management / Mitigation',
+    'ESG / Sustainability Initiative',
+    'Infrastructure Development (PPP)',
+    'Export Promotion',
+    'Import Substitution',
+    'Hostile Takeover Defense',
+    'Asset Divestiture',
+    'Digital Transformation',
+    'Brand Expansion',
+    'Humanitarian Aid Logistics',
+    'Sovereign Wealth Deployment',
+    'National Security Initiative'
+];
+
+export const GLOBAL_COUNTERPARTS = [
+    'Central Government (Ministry/Dept)',
+    'Regional/Local Government',
+    'State-Owned Enterprise (SOE)',
+    'Public Listed Corporation',
+    'Private Enterprise (SME/Startup)',
+    'Sovereign Wealth Fund (SWF)',
+    'Private Equity / Venture Capital',
+    'Family Office',
+    'Academic / Research Institution',
+    'Non-Governmental Organization (NGO)',
+    'Defense Contractor',
+    'Intergovernmental Organization',
+    'Trade Association / Chamber',
+    'Utility Provider',
+    'Financial Institution / Bank',
+    'Infrastructure Developer',
+    'Royal Family Office',
+    'Paramilitary / Security Firm'
+];
+
+export const GLOBAL_INCENTIVES = [
+    'Corporate Tax Holiday',
+    'Reduced Tax Rate',
+    'R&D Tax Credits',
+    'Free Land / Land Subsidy',
+    'Utility Subsidies',
+    'Employment / Training Grants',
+    'Golden Visa / Expat Residency',
+    'Capital Equipment Grants',
+    'Customs Duty Exemption',
+    'Free Trade Zone (FTZ) Status',
+    'Special Economic Zone (SEZ)',
+    'Regulatory Sandbox',
+    'Fast-Track Permitting',
+    'Profit Repatriation Guarantee',
+    'Government Procurement Priority',
+    'Low-Interest Loans',
+    'Export Credit Guarantees',
+    'Innovation Box Regime',
+    'Sustainability / Green Grants',
+    'Infrastructure Connection Subsidy'
+];
+
 export const SECTOR_DEPARTMENTS: Record<string, string[]> = {
     'Banking & Finance': [
         'Investment Banking Division', 'Risk Management', 'Compliance & Regulatory', 'Private Wealth', 
@@ -264,23 +335,7 @@ export const SECTOR_OPPORTUNITIES: Record<string, string[]> = {
     // ... (Keeping existing opportunities, just showing structure is maintained)
 };
 
-export const GOVERNMENT_INCENTIVES = [
-    'Tax Holiday (5-10 Years)',
-    'Corporate Tax Reduction',
-    'Import Duty Exemption',
-    'Free Land / Land Lease Subsidy',
-    'R&D Grants / Credits',
-    'Employment / Training Subsidies',
-    'VAT / GST Exemption',
-    'Capital Equipment Grants',
-    'Infrastructure Connection Subsidy',
-    'Fast-Track Permitting',
-    'Profit Repatriation Guarantee',
-    'Expat Visa Facilitation',
-    'Free Trade Zone Status',
-    'Innovation Box Regime',
-    'Green Energy Subsidies'
-];
+export const GOVERNMENT_INCENTIVES = GLOBAL_INCENTIVES;
 
 export const ORGANIZATION_SCALE_BANDS = {
   revenue: [
@@ -334,16 +389,7 @@ export const GLOBAL_CITY_DATABASE: Record<string, GlobalCityData> = {
 
 // --- NEW CONSTANTS ADDED FOR COMPONENT SUPPORT ---
 
-export const MISSION_TYPES = [
-    { value: 'market_entry', label: 'Market Entry' },
-    { value: 'expansion', label: 'Expansion' },
-    { value: 'ma', label: 'M&A' },
-    { value: 'partnership', label: 'Strategic Partnership' },
-    { value: 'supply_chain', label: 'Supply Chain Optimization' },
-    { value: 'investment_attraction', label: 'Investment Attraction' },
-    { value: 'innovation', label: 'Innovation & R&D' },
-    { value: 'relocation', label: 'Corporate Relocation' }
-];
+export const MISSION_TYPES = GLOBAL_STRATEGIC_INTENTS.map(i => ({ value: i, label: i }));
 
 export const MANDATE_TYPES = MISSION_TYPES;
 
@@ -392,9 +438,7 @@ export const PRIORITY_THEMES = [
     'Digital Transformation', 'Sustainability (ESG)', 'Innovation', 'Cost Leadership', 'Customer Experience', 'Operational Excellence'
 ];
 
-export const TARGET_COUNTERPART_TYPES = [
-    'Government Agency', 'Private Corporation', 'State-Owned Enterprise', 'Investment Fund', 'NGO', 'Academic Institution'
-];
+export const TARGET_COUNTERPART_TYPES = GLOBAL_COUNTERPARTS;
 
 export const POLITICAL_SENSITIVITIES = [
     'Data Sovereignty', 'National Security', 'Labor Rights', 'Environmental Impact', 'Cultural Heritage', 'Political Stability'

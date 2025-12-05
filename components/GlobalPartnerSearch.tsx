@@ -24,7 +24,7 @@ const GlobalPartnerSearch: React.FC = () => {
         country: '',
         industry: industry ? [industry] : [],
         customIndustry: '',
-        strategicIntent: 'Partner Discovery',
+        strategicIntent: ['Partner Discovery'],
         idealPartnerProfile: '',
         problemStatement: `Find partners in ${region} for ${industry}`,
         analysisTimeframe: 'Last 12 Months',

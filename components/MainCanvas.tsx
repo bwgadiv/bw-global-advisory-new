@@ -7,7 +7,7 @@ import {
   Briefcase, Clock, AlertTriangle, Layers,
   ArrowRight, Search, Plus, Trash2, MapPin,
   TrendingUp, BarChart3, Scale, Info, Building2, MousePointerClick, Flag, History, PenTool,
-  Network, Cpu, MessageSquare, Mic, Share2, ListTodo, ToggleLeft, ToggleRight
+  Network, Cpu, MessageSquare, Mic, Share2, ListTodo, ToggleLeft, ToggleRight, CheckSquare, Square
 } from 'lucide-react';
 import { ReportParameters, ReportData, GenerationPhase, LiveOpportunityItem, ReportSection, NeuroSymbolicState } from '../types';
 import { 
@@ -37,7 +37,10 @@ import {
     SECTOR_THEMES,
     GLOBAL_DEPARTMENTS,
     GLOBAL_ROLES,
-    GLOBAL_LEGAL_ENTITIES
+    GLOBAL_LEGAL_ENTITIES,
+    GLOBAL_STRATEGIC_INTENTS,
+    GLOBAL_COUNTERPARTS,
+    GLOBAL_INCENTIVES
 } from '../constants';
 
 // Module Imports
@@ -234,6 +237,146 @@ const SelectOrInput = ({
         </div>
     );
 };
+
+// NEW: Multi-Select with Search and Checkboxes
+const MultiSelectWithSearch = ({
+    label,
+    selectedValues,
+    options,
+    onChange,
+    placeholder = "Select options...",
+    allowCustom = true
+}: {
+    label: string;
+    selectedValues: string[];
+    options: string[];
+    onChange: (values: string[]) => void;
+    placeholder?: string;
+    allowCustom?: boolean;
+}) => {
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [customValue, setCustomValue] = useState("");
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const filteredOptions = options.filter(opt => 
+        opt.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const toggleValue = (val: string) => {
+        if (selectedValues.includes(val)) {
+            onChange(selectedValues.filter(v => v !== val));
+        } else {
+            onChange([...selectedValues, val]);
+        }
+    };
+
+    const addCustom = () => {
+        if (customValue && !selectedValues.includes(customValue)) {
+            onChange([...selectedValues, customValue]);
+            setCustomValue("");
+        }
+    };
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    return (
+        <div className="relative group mb-1" ref={dropdownRef}>
+            <label className="text-xs font-bold text-stone-700 uppercase tracking-wide mb-1.5 block">{label}</label>
+            
+            {/* Trigger Area */}
+            <div 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className={`w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm flex justify-between items-center cursor-pointer hover:border-stone-300 focus:ring-2 focus:ring-stone-800 transition-all text-stone-700 font-medium min-h-[46px] ${isDropdownOpen ? 'ring-2 ring-stone-800 border-stone-800' : ''}`}
+            >
+                <div className="flex flex-wrap gap-2 pr-2">
+                    {selectedValues.length === 0 && <span className="text-stone-400">{placeholder}</span>}
+                    {selectedValues.map(val => (
+                        <span key={val} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold border border-blue-200 flex items-center gap-1" onClick={(e) => { e.stopPropagation(); toggleValue(val); }}>
+                            {val} <XIcon className="w-3 h-3 hover:text-red-600" />
+                        </span>
+                    ))}
+                </div>
+                <ChevronRight className={`w-4 h-4 text-stone-400 transition-transform flex-shrink-0 ${isDropdownOpen ? '-rotate-90' : 'rotate-90'}`} />
+            </div>
+
+            {/* Dropdown */}
+            {isDropdownOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-stone-200 rounded-lg shadow-2xl max-h-80 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-2 border-b border-stone-100 bg-stone-50">
+                        <div className="flex items-center gap-2 bg-white px-2 rounded border border-stone-200">
+                            <Search className="w-3 h-3 text-stone-400" />
+                            <input 
+                                className="w-full py-1.5 text-xs outline-none bg-transparent"
+                                placeholder="Search list..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <div className="overflow-y-auto flex-1 custom-scrollbar p-1">
+                        {filteredOptions.map(opt => {
+                            const isSelected = selectedValues.includes(opt);
+                            return (
+                                <div 
+                                    key={opt}
+                                    onClick={() => toggleValue(opt)}
+                                    className={`px-3 py-2 text-sm cursor-pointer hover:bg-stone-50 rounded flex items-center gap-3 transition-colors ${isSelected ? 'bg-blue-50/50' : 'text-stone-700'}`}
+                                >
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-stone-300 bg-white'}`}>
+                                        {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
+                                    </div>
+                                    <span className={isSelected ? 'font-bold text-blue-900' : ''}>{opt}</span>
+                                </div>
+                            );
+                        })}
+                        {filteredOptions.length === 0 && <div className="p-4 text-xs text-stone-400 text-center">No standard options match. Add custom below.</div>}
+                    </div>
+                    
+                    {allowCustom && (
+                        <div className="p-2 border-t border-stone-100 bg-stone-50">
+                            <div className="flex gap-2">
+                                <input 
+                                    className="flex-1 px-3 py-1.5 text-xs border border-stone-300 rounded bg-white outline-none focus:border-blue-500"
+                                    placeholder="Add custom entry..."
+                                    value={customValue}
+                                    onChange={(e) => setCustomValue(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && addCustom()}
+                                />
+                                <button 
+                                    onClick={addCustom}
+                                    disabled={!customValue}
+                                    className="px-3 py-1 bg-stone-800 text-white rounded text-xs font-bold hover:bg-black disabled:opacity-50"
+                                >
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const XIcon = ({ className, onClick }: { className?: string, onClick?: (e: any) => void }) => (
+    <svg className={className} onClick={onClick} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+);
+
+const CheckIcon = ({ className }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+);
 
 const MainCanvas: React.FC<MainCanvasProps> = ({ 
     params, setParams, reportData, isGenerating, generationPhase, generationProgress, onGenerate,
@@ -487,9 +630,8 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
         );
     };
 
-    // --- STEP 2: STRATEGIC MANDATE ---
+    // --- STEP 2: STRATEGIC MANDATE (UPDATED FOR MULTI-SELECT) ---
     const renderStep2_Mandate = () => {
-        const domainObjectives = getObjectivesList();
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
                 <div className="flex items-center gap-4 mb-4">
@@ -506,19 +648,20 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Mission Architecture</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <SelectOrInput
-                            label="Core Strategic Intent"
-                            value={params.strategicIntent}
-                            options={domainObjectives}
-                            onChange={(val) => handleParamChange('strategicIntent', val)}
-                            placeholder="e.g. Hostile Takeover Defense"
-                            fallbackList={MISSION_TYPES.map(m => m.label)}
+                        {/* Multi-Select for Strategic Intent */}
+                        <MultiSelectWithSearch
+                            label="Core Strategic Intent (Select all that apply)"
+                            options={GLOBAL_STRATEGIC_INTENTS}
+                            selectedValues={Array.isArray(params.strategicIntent) ? params.strategicIntent : [params.strategicIntent].filter(Boolean)}
+                            onChange={(values) => handleParamChange('strategicIntent', values)}
+                            placeholder="Select Mission Vectors..."
                         />
+                        
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Target Region</label>
                                 <select 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 focus:ring-stone-800"
                                     value={params.region}
                                     onChange={(e) => handleParamChange('region', e.target.value)}
                                 >
@@ -529,7 +672,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             <div>
                                 <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Specific Country</label>
                                 <select 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 focus:ring-stone-800"
                                     value={params.country}
                                     onChange={(e) => handleParamChange('country', e.target.value)}
                                 >
@@ -574,55 +717,23 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Targeting & Mechanics</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <SelectOrInput
+                        {/* Multi-Select for Counterpart Profile */}
+                        <MultiSelectWithSearch
                             label="Target Counterpart Profile"
-                            value={params.targetCounterpartType || ''}
-                            options={TARGET_COUNTERPART_TYPES.map(t => ({ value: t, label: t }))}
-                            onChange={(val) => handleParamChange('targetCounterpartType', val)}
-                            placeholder="e.g. Specific Ministry or Conglomerate"
-                            fallbackList={TARGET_COUNTERPART_TYPES}
+                            options={GLOBAL_COUNTERPARTS}
+                            selectedValues={Array.isArray(params.targetCounterpartType) ? params.targetCounterpartType : [params.targetCounterpartType].filter(Boolean)}
+                            onChange={(values) => handleParamChange('targetCounterpartType', values)}
+                            placeholder="Select Target Entity Types..."
                         />
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Target Incentives</label>
-                            <div className="flex gap-2 mb-2">
-                                <select 
-                                    className="flex-1 p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer" 
-                                    onChange={e => {
-                                        if(e.target.value) toggleArrayParam('targetIncentives', e.target.value);
-                                    }}
-                                    value=""
-                                >
-                                    <option value="">Select Standard Incentive...</option>
-                                    {GOVERNMENT_INCENTIVES.map(inc => <option key={inc} value={inc}>{inc}</option>)}
-                                </select>
-                                <div className="flex-1 flex gap-1">
-                                    <input 
-                                        className="w-full p-3 bg-white border border-stone-200 rounded-lg text-sm outline-none placeholder-stone-400"
-                                        placeholder="Or type custom..."
-                                        value={customIncentive}
-                                        onChange={(e) => setCustomIncentive(e.target.value)}
-                                    />
-                                    <button 
-                                        onClick={() => {
-                                            if (customIncentive) {
-                                                toggleArrayParam('targetIncentives', customIncentive);
-                                                setCustomIncentive('');
-                                            }
-                                        }}
-                                        className="px-3 bg-stone-100 border border-stone-200 rounded-lg hover:bg-stone-200 text-stone-600 transition-colors"
-                                    >
-                                        <Plus size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {(params.targetIncentives || []).map(inc => (
-                                    <span key={inc} onClick={() => toggleArrayParam('targetIncentives', inc)} className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200 cursor-pointer hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-1">
-                                        {inc} <Trash2 size={10} />
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
+                        
+                        {/* Multi-Select for Incentives */}
+                        <MultiSelectWithSearch
+                            label="Target Incentives"
+                            options={GLOBAL_INCENTIVES}
+                            selectedValues={params.targetIncentives || []}
+                            onChange={(values) => handleParamChange('targetIncentives', values)}
+                            placeholder="Select Desired Incentives..."
+                        />
                     </div>
                 </div>
             </div>
@@ -1071,7 +1182,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                         <h2 className="text-lg font-serif font-bold text-stone-900 leading-tight">
                             {params.organizationName || 'Organization Name'}
                         </h2>
-                        <p className="text-xs text-stone-500 truncate">{params.strategicIntent || 'Define Strategic Intent...'}</p>
+                        <p className="text-xs text-stone-500 truncate">{Array.isArray(params.strategicIntent) ? params.strategicIntent.join(', ') : params.strategicIntent || 'Define Strategic Intent...'}</p>
                     </div>
                     
                     {/* 0. Due Diligence (If active) */}

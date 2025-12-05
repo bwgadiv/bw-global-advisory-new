@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export type SkillLevel = 'novice' | 'experienced' | 'expert';
@@ -115,7 +116,7 @@ export interface ReportParameters {
   tier: string[];
   
   // Strategy & Mandate
-  strategicIntent: string; // This will now map to MISSION_TYPES
+  strategicIntent: string[]; // UPDATED to array for multi-select
   strategicMode: string;
   problemStatement: string;
   idealPartnerProfile: string;
@@ -124,10 +125,10 @@ export interface ReportParameters {
   strategicObjectives: string[];
   strategicLens?: string[];
   priorityThemes?: string[]; 
-  targetCounterpartType?: string; 
+  targetCounterpartType?: string[]; // UPDATED to array for multi-select
   successMetrics?: string[];
-  specificOpportunity?: string; // NEW: Granular opportunity selection
-  targetIncentives?: string[]; // NEW: Incentives sought
+  specificOpportunity?: string; // Granular opportunity selection
+  targetIncentives?: string[]; // Incentives sought
   
   // Execution & Operations
   relationshipStage: string;
