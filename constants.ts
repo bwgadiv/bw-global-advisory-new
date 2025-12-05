@@ -76,6 +76,107 @@ export const SECTOR_THEMES: Record<string, { bg: string, border: string, text: s
     'Default': { bg: 'bg-stone-50', border: 'border-stone-200', text: 'text-stone-800', icon: '🏢' }
 };
 
+// --- COMPREHENSIVE LISTS ---
+
+export const GLOBAL_LEGAL_ENTITIES = [
+    'Private Limited Company (Ltd/Pty Ltd)',
+    'Public Limited Company (PLC/Inc)',
+    'Limited Liability Company (LLC)',
+    'Partnership (General/Limited)',
+    'Sole Proprietorship',
+    'State-Owned Enterprise (SOE)',
+    'Government Ministry / Department',
+    'Non-Governmental Organization (NGO)',
+    'Non-Profit / Foundation',
+    'Sovereign Wealth Fund',
+    'Joint Venture (JV)',
+    'Special Purpose Vehicle (SPV)',
+    'Holding Company',
+    'Trust / Family Office',
+    'Cooperative',
+    'Branch Office / Representative Office',
+    'Subsidiary',
+    'Academic Institution',
+    'Intergovernmental Organization (IGO)'
+];
+
+export const GLOBAL_INDUSTRIES_EXTENDED = [
+    'Aerospace & Defense',
+    'Agriculture & AgTech',
+    'Automotive & Mobility',
+    'Banking & Capital Markets',
+    'Biotechnology & Life Sciences',
+    'Chemicals & Advanced Materials',
+    'Construction & Engineering',
+    'Consumer Goods & FMCG',
+    'Education & EdTech',
+    'Energy (Oil & Gas)',
+    'Energy (Renewables & CleanTech)',
+    'Fashion & Apparel',
+    'Financial Services & Fintech',
+    'Food & Beverage',
+    'Government & Public Sector',
+    'Healthcare & Medical Devices',
+    'Hospitality & Tourism',
+    'Infrastructure & Urban Development',
+    'Insurance & InsurTech',
+    'Legal & Professional Services',
+    'Logistics & Supply Chain',
+    'Manufacturing & Industrial IoT',
+    'Media & Entertainment',
+    'Mining & Metals',
+    'Non-Profit & Philanthropy',
+    'Pharmaceuticals',
+    'Real Estate & PropTech',
+    'Retail & E-commerce',
+    'Space & Satellite',
+    'Technology (Hardware)',
+    'Technology (Software & SaaS)',
+    'Telecommunications',
+    'Utilities & Waste Management'
+];
+
+export const GLOBAL_DEPARTMENTS = [
+    'Executive Office / C-Suite',
+    'Strategic Planning / Corporate Strategy',
+    'Finance & Treasury',
+    'Operations & Logistics',
+    'Legal & Compliance',
+    'Human Resources / People Ops',
+    'Marketing & Communications',
+    'Sales & Business Development',
+    'Research & Development (R&D)',
+    'Product Management',
+    'Engineering / IT',
+    'Procurement / Supply Chain',
+    'Investment / M&A',
+    'Government Relations / Public Policy',
+    'Sustainability / ESG',
+    'Risk Management',
+    'Project Management Office (PMO)',
+    'Investor Relations',
+    'Innovation / Digital Transformation'
+];
+
+export const GLOBAL_ROLES = [
+    'Board Member / Chairman',
+    'C-Level Executive (CEO, CFO, CTO, etc.)',
+    'Founder / Owner',
+    'Managing Director / Partner',
+    'Vice President (VP)',
+    'Director / Head of Department',
+    'Senior Manager / Lead',
+    'Manager',
+    'Senior Consultant / Advisor',
+    'Analyst / Associate',
+    'Specialist / Technical Expert',
+    'Government Official / Civil Servant',
+    'Project Manager',
+    'Researcher / Scientist',
+    'Legal Counsel',
+    'Investor / Shareholder'
+];
+
 export const SECTOR_DEPARTMENTS: Record<string, string[]> = {
     'Banking & Finance': [
         'Investment Banking Division', 'Risk Management', 'Compliance & Regulatory', 'Private Wealth', 
@@ -100,36 +201,9 @@ export const SECTOR_DEPARTMENTS: Record<string, string[]> = {
     ]
 };
 
-export const SECTORS_LIST = [
-  'Government',
-  'Technology',
-  'Banking & Finance',
-  'Education',
-  'Business Services',
-  'Infrastructure',
-  'Healthcare',
-  'Energy',
-  'Defense',
-  'Manufacturing',
-  'Agriculture',
-  'Mining',
-  'Tourism',
-  'Real Estate',
-  'Non-Profit / NGO'
-];
+export const SECTORS_LIST = GLOBAL_INDUSTRIES_EXTENDED;
 
-export const ORGANIZATION_TYPES = [
-    'Private Enterprise',
-    'Financial Institution',
-    'Government / Public Sector',
-    'Sovereign Wealth Fund',
-    'NGO / Non-Profit',
-    'Academic / Research Institution',
-    'Multilateral Organization',
-    'Family Office',
-    'Startup / Scaleup',
-    'Conglomerate / Holding Co.'
-];
+export const ORGANIZATION_TYPES = GLOBAL_LEGAL_ENTITIES;
 
 export const ORGANIZATION_SUBTYPES: Record<string, string[]> = {
     'Private Enterprise': ['Corporation', 'Startup', 'SME', 'Conglomerate', 'PE Firm'],
@@ -346,18 +420,23 @@ export const DECISION_AUTHORITY_LEVELS = [
 
 export const ORGANIZATION_SCALE_BANDS = {
   revenue: [
-    { value: 'under_10m', label: 'Under $10M' },
+    { value: 'pre_revenue', label: 'Pre-Revenue / Seed' },
+    { value: 'under_1m', label: 'Under $1M' },
+    { value: '1m_10m', label: '$1M - $10M' },
     { value: '10m_50m', label: '$10M - $50M' },
     { value: '50m_250m', label: '$50M - $250M' },
     { value: '250m_1b', label: '$250M - $1B' },
-    { value: 'over_1b', label: 'Over $1B' }
+    { value: '1b_10b', label: '$1B - $10B' },
+    { value: 'over_10b', label: 'Over $10B' }
   ],
   headcount: [
-    { value: 'under_50', label: 'Under 50' },
+    { value: 'under_10', label: '1 - 10' },
+    { value: '10_50', label: '10 - 50' },
     { value: '50_250', label: '50 - 250' },
     { value: '250_1000', label: '250 - 1,000' },
     { value: '1000_5000', label: '1,000 - 5,000' },
-    { value: 'over_5000', label: 'Over 5,000' }
+    { value: '5000_10000', label: '5,000 - 10,000' },
+    { value: 'over_10000', label: 'Over 10,000' }
   ],
   dealSize: [
     { value: 'under_10m', label: 'Under $10M' },
@@ -624,21 +703,7 @@ export const AVAILABLE_MODULES = [
   'Data Visualization'
 ];
 
-export const INDUSTRIES = [
-    { id: 'Technology', title: 'Technology & Software' },
-    { id: 'Banking & Finance', title: 'Banking & Financial Services' },
-    { id: 'Energy', title: 'Energy & Renewables' },
-    { id: 'Healthcare', title: 'Healthcare & Pharma' },
-    { id: 'Infrastructure', title: 'Infrastructure & Construction' },
-    { id: 'Retail', title: 'Retail & E-commerce' },
-    { id: 'Agriculture', title: 'Agriculture & Food' },
-    { id: 'Manufacturing', title: 'Manufacturing & Industry' },
-    { id: 'Mining', title: 'Mining & Metals' },
-    { id: 'Transport', title: 'Transport & Logistics' },
-    { id: 'Tourism', title: 'Tourism & Hospitality' },
-    { id: 'Government', title: 'Government & Defense' },
-    { id: 'Non-Profit', title: 'Non-Profit / NGO' }
-];
+export const INDUSTRIES = GLOBAL_INDUSTRIES_EXTENDED.map(i => ({ id: i, title: i }));
 
 export const GLOBAL_CITY_DATABASE: Record<string, GlobalCityData> = {
     // ... (Keeping existing data logic, assuming it's populating from TYPES correctly now)

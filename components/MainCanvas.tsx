@@ -7,7 +7,7 @@ import {
   Briefcase, Clock, AlertTriangle, Layers,
   ArrowRight, Search, Plus, Trash2, MapPin,
   TrendingUp, BarChart3, Scale, Info, Building2, MousePointerClick, Flag, History, PenTool,
-  Network, Cpu, MessageSquare, Mic, Share2, ListTodo
+  Network, Cpu, MessageSquare, Mic, Share2, ListTodo, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { ReportParameters, ReportData, GenerationPhase, LiveOpportunityItem, ReportSection, NeuroSymbolicState } from '../types';
 import { 
@@ -34,7 +34,10 @@ import {
     LETTER_STYLES,
     REPORT_DEPTHS,
     SECTOR_DEPARTMENTS,
-    SECTOR_THEMES
+    SECTOR_THEMES,
+    GLOBAL_DEPARTMENTS,
+    GLOBAL_ROLES,
+    GLOBAL_LEGAL_ENTITIES
 } from '../constants';
 
 // Module Imports
@@ -83,61 +86,70 @@ const ENGINE_CATALOG = [
     { id: 'financials', label: 'Financial Modeling', desc: 'Strategic Cash Flow (SCF) & Predictive Growth.', icon: BarChart, color: 'text-green-600', bg: 'bg-green-50' }
 ];
 
-// Helper Component for Custom/Select Inputs
+// Improved SelectOrInput Component
 const SelectOrInput = ({
     label,
     value,
     options,
     onChange,
-    placeholder = "Enter custom value..."
+    placeholder = "Enter custom value...",
+    fallbackList = []
 }: {
     label: string;
     value: string;
     options: { value: string; label: string }[];
     onChange: (val: string) => void;
     placeholder?: string;
+    fallbackList?: string[];
 }) => {
-    // Determine if the current value is custom (not in options list and not empty)
-    const isStandard = options.some(o => o.value === value) || value === "";
-    const [isCustomMode, setIsCustomMode] = useState(!isStandard && value !== "");
-
-    // If value changes externally to a standard option, switch back to select
-    useEffect(() => {
-        if (options.some(o => o.value === value)) {
-            setIsCustomMode(false);
-        }
-    }, [value, options]);
+    // Check if current value exists in provided options
+    const isValueInOptions = options.some(o => o.value === value);
+    // If options are empty, we might want to default to custom mode or use fallback
+    const effectiveOptions = options.length > 0 ? options : fallbackList.map(s => ({ value: s, label: s }));
+    
+    // Default to Custom Mode if value exists but isn't in the list, OR if requested explicitly
+    const [isCustomMode, setIsCustomMode] = useState(!isValueInOptions && value !== "");
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-bold text-stone-700">{label}</label>
+        <div className="relative group">
+            <div className="flex justify-between items-end mb-1.5">
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wide">{label}</label>
                 <button
                     onClick={() => {
-                        const nextMode = !isCustomMode;
-                        setIsCustomMode(nextMode);
-                        if (!nextMode) onChange(""); // Reset if switching back to select
+                        setIsCustomMode(!isCustomMode);
+                        // Optional: Clear value on switch or keep it? Keeping it is usually better UX.
                     }}
-                    className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors"
+                    className="text-[10px] flex items-center gap-1.5 font-bold transition-colors text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded cursor-pointer select-none"
                 >
-                    {isCustomMode ? <><Layout size={10}/> Switch to List</> : <><PenTool size={10}/> Custom Entry</>}
+                    {isCustomMode ? (
+                        <>
+                            <ListTodo size={12} /> Select from List
+                        </>
+                    ) : (
+                        <>
+                            <PenTool size={12} /> Type Manually
+                        </>
+                    )}
                 </button>
             </div>
 
             {isCustomMode ? (
-                <div className="relative animate-in fade-in duration-200">
+                <div className="relative animate-in fade-in zoom-in-95 duration-200">
                     <input
-                        className="w-full p-3 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                        className="w-full p-3 bg-white border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm text-stone-900 placeholder-stone-400"
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         placeholder={placeholder}
                         autoFocus
                     />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">
+                        <PenTool size={14} />
+                    </div>
                 </div>
             ) : (
-                <div className="relative">
+                <div className="relative animate-in fade-in zoom-in-95 duration-200">
                     <select
-                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-stone-900 transition-shadow appearance-none"
+                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-stone-800 focus:border-stone-800 transition-all appearance-none cursor-pointer text-stone-700 font-medium"
                         value={value}
                         onChange={(e) => {
                             if (e.target.value === "CUSTOM_TRIGGER") {
@@ -149,11 +161,11 @@ const SelectOrInput = ({
                         }}
                     >
                         <option value="">Select {label}...</option>
-                        {options.map(opt => (
+                        {effectiveOptions.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                         <option disabled>──────────</option>
-                        <option value="CUSTOM_TRIGGER">Other / Custom Value...</option>
+                        <option value="CUSTOM_TRIGGER">Other / Custom Entry...</option>
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
                         <ChevronRight className="w-4 h-4 rotate-90" />
@@ -263,7 +275,10 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     const renderStep1_Profile = () => {
         const currentSector = params.industry[0] || 'Default';
         const sectorTheme = SECTOR_THEMES[currentSector] || SECTOR_THEMES['Default'];
-        const departmentOptions = SECTOR_DEPARTMENTS[currentSector] ? SECTOR_DEPARTMENTS[currentSector].map(d => ({ value: d, label: d })) : [];
+        
+        // Smart Department List: Try Sector specific, fallback to Global list
+        const departmentOptionsRaw = SECTOR_DEPARTMENTS[currentSector] || GLOBAL_DEPARTMENTS;
+        const departmentOptions = departmentOptionsRaw.map(d => ({ value: d, label: d }));
 
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
@@ -310,37 +325,39 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <SelectOrInput
-                                    label="Entity Type"
+                                    label="Legal Entity Structure"
                                     value={params.organizationType}
-                                    options={ORGANIZATION_TYPES.map(t => ({ value: t, label: t }))}
+                                    options={GLOBAL_LEGAL_ENTITIES.map(t => ({ value: t, label: t }))}
                                     onChange={(val) => handleParamChange('organizationType', val)}
-                                    placeholder="e.g. Special Purpose Vehicle"
+                                    placeholder="e.g. Special Purpose Vehicle (SPV)"
+                                    fallbackList={ORGANIZATION_TYPES}
                                 />
                                 <SelectOrInput
-                                    label="Primary Sector"
+                                    label="Primary Industry Sector"
                                     value={params.industry[0] || ''}
                                     options={INDUSTRIES.map(i => ({ value: i.title, label: i.title }))}
                                     onChange={(val) => handleParamChange('industry', [val])}
-                                    placeholder="e.g. Clean Energy"
+                                    placeholder="e.g. Renewable Energy"
+                                    fallbackList={INDUSTRIES.map(i => i.title)}
                                 />
                             </div>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs font-bold text-stone-700 block mb-1">Organization Name</label>
+                                    <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Organization Name</label>
                                     <input 
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-stone-900 outline-none"
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-stone-900 outline-none placeholder-stone-400"
                                         value={params.organizationName}
                                         onChange={(e) => handleParamChange('organizationName', e.target.value)}
                                         placeholder="e.g. Acme Global Industries"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-stone-700 block mb-1">Headquarters Address</label>
+                                    <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Headquarters Location</label>
                                     <input 
-                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none"
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none placeholder-stone-400"
                                         value={params.organizationAddress || ''}
                                         onChange={(e) => handleParamChange('organizationAddress', e.target.value)}
-                                        placeholder="e.g. 123 Strategic Ave, Global City"
+                                        placeholder="e.g. 123 Strategic Ave, London"
                                     />
                                 </div>
                             </div>
@@ -359,11 +376,11 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                 <h5 className={`text-sm font-bold ${sectorTheme.text} border-l-2 border-stone-300 pl-2`}>Organizational Scale</h5>
                                 
                                 <SelectOrInput 
-                                    label="Annual Revenue"
+                                    label="Annual Revenue Band"
                                     value={params.revenueBand || ''}
                                     options={ORGANIZATION_SCALE_BANDS.revenue}
                                     onChange={(val) => handleParamChange('revenueBand', val)}
-                                    placeholder="e.g. $2.5M or 'Pre-Revenue'"
+                                    placeholder="e.g. $2.5M USD"
                                 />
 
                                 <SelectOrInput 
@@ -378,30 +395,31 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             <div className="space-y-5">
                                 <h5 className={`text-sm font-bold ${sectorTheme.text} border-l-2 border-stone-300 pl-2`}>Your Role Context</h5>
                                 <div>
-                                    <label className="text-xs font-bold text-stone-700 block mb-1">Your Name</label>
+                                    <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Your Name</label>
                                     <input 
-                                        className="w-full p-3 bg-white border border-stone-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-stone-900" 
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-stone-900 placeholder-stone-400" 
                                         value={params.userName} 
                                         onChange={e => handleParamChange('userName', e.target.value)} 
                                         placeholder="e.g. John Doe"
                                     />
                                 </div>
                                 
-                                {/* Dynamic Department Selector */}
                                 <SelectOrInput 
-                                    label="Department / Unit"
+                                    label="Department / Functional Unit"
                                     value={params.userDepartment}
                                     options={departmentOptions}
                                     onChange={(val) => handleParamChange('userDepartment', val)}
-                                    placeholder="e.g. Strategic Planning"
+                                    placeholder="e.g. Strategic Planning Division"
+                                    fallbackList={GLOBAL_DEPARTMENTS}
                                 />
 
                                 <SelectOrInput 
                                     label="Role Perspective (Authority)"
                                     value={params.decisionAuthority || ''}
-                                    options={DECISION_AUTHORITY_LEVELS}
+                                    options={GLOBAL_ROLES.map(r => ({value: r, label: r}))}
                                     onChange={(val) => handleParamChange('decisionAuthority', val)}
-                                    placeholder="e.g. Consultant, Owner, Advisor"
+                                    placeholder="e.g. Senior Consultant"
+                                    fallbackList={GLOBAL_ROLES}
                                 />
                             </div>
                         </div>
@@ -436,12 +454,13 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             options={domainObjectives}
                             onChange={(val) => handleParamChange('strategicIntent', val)}
                             placeholder="e.g. Hostile Takeover Defense"
+                            fallbackList={MISSION_TYPES.map(m => m.label)}
                         />
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold text-stone-700 block mb-1">Target Region</label>
+                                <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Target Region</label>
                                 <select 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
                                     value={params.region}
                                     onChange={(e) => handleParamChange('region', e.target.value)}
                                 >
@@ -450,9 +469,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-stone-700 block mb-1">Specific Country</label>
+                                <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Specific Country</label>
                                 <select 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
                                     value={params.country}
                                     onChange={(e) => handleParamChange('country', e.target.value)}
                                 >
@@ -471,9 +490,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Strategic Context (Narrative)</h4>
                     <div className="grid grid-cols-1 gap-6">
                         <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Problem Statement / Mission Context</label>
+                            <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Problem Statement / Mission Context</label>
                             <textarea 
-                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none resize-none focus:bg-white focus:ring-2 focus:ring-stone-900 transition-all"
+                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none resize-none focus:bg-white focus:ring-2 focus:ring-stone-900 transition-all placeholder-stone-400"
                                 rows={3}
                                 value={params.problemStatement}
                                 onChange={(e) => handleParamChange('problemStatement', e.target.value)}
@@ -481,9 +500,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Ideal Partner Profile</label>
+                            <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Ideal Partner Profile</label>
                             <textarea 
-                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none resize-none focus:bg-white focus:ring-2 focus:ring-stone-900 transition-all"
+                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none resize-none focus:bg-white focus:ring-2 focus:ring-stone-900 transition-all placeholder-stone-400"
                                 rows={2}
                                 value={params.idealPartnerProfile}
                                 onChange={(e) => handleParamChange('idealPartnerProfile', e.target.value)}
@@ -503,12 +522,13 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             options={TARGET_COUNTERPART_TYPES.map(t => ({ value: t, label: t }))}
                             onChange={(val) => handleParamChange('targetCounterpartType', val)}
                             placeholder="e.g. Specific Ministry or Conglomerate"
+                            fallbackList={TARGET_COUNTERPART_TYPES}
                         />
                         <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Target Incentives</label>
+                            <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Target Incentives</label>
                             <div className="flex gap-2 mb-2">
                                 <select 
-                                    className="flex-1 p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" 
+                                    className="flex-1 p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer" 
                                     onChange={e => {
                                         if(e.target.value) toggleArrayParam('targetIncentives', e.target.value);
                                     }}
@@ -519,7 +539,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                 </select>
                                 <div className="flex-1 flex gap-1">
                                     <input 
-                                        className="w-full p-3 bg-white border border-stone-200 rounded-lg text-sm outline-none"
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-lg text-sm outline-none placeholder-stone-400"
                                         placeholder="Or type custom..."
                                         value={customIncentive}
                                         onChange={(e) => setCustomIncentive(e.target.value)}
@@ -531,7 +551,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                                 setCustomIncentive('');
                                             }
                                         }}
-                                        className="px-3 bg-stone-100 border border-stone-200 rounded-lg hover:bg-stone-200 text-stone-600"
+                                        className="px-3 bg-stone-100 border border-stone-200 rounded-lg hover:bg-stone-200 text-stone-600 transition-colors"
                                     >
                                         <Plus size={16} />
                                     </button>
@@ -571,9 +591,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                         <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Financial Architecture</h4>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold text-stone-700 block mb-1">Budget Cap</label>
+                                <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Budget Cap</label>
                                 <input 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none placeholder-stone-400"
                                     placeholder="$50M USD"
                                     value={params.calibration?.constraints?.budgetCap || ''}
                                     onChange={(e) => setParams({
@@ -583,9 +603,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-stone-700 block mb-1">Time Horizon</label>
+                                <label className="text-xs font-bold text-stone-700 block mb-1 uppercase tracking-wide">Time Horizon</label>
                                 <select 
-                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
                                     value={params.expansionTimeline}
                                     onChange={(e) => handleParamChange('expansionTimeline', e.target.value)}
                                 >
@@ -603,7 +623,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5 h-fit">
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Risk & Sensitivities</h4>
                     <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-3">Risk Appetite</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-3 uppercase tracking-wide">Risk Appetite</label>
                         <div className="space-y-2">
                             {RISK_APPETITE_LEVELS.map((lvl) => (
                                 <label key={lvl.value} className={`flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all ${params.riskTolerance === lvl.value ? 'bg-stone-900 text-white border-stone-900' : 'bg-white border-stone-200 hover:border-stone-300'}`}>
@@ -621,7 +641,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Political Sensitivities (Red Lines)</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-2 uppercase tracking-wide">Political Sensitivities (Red Lines)</label>
                         <div className="flex flex-wrap gap-2">
                             {POLITICAL_SENSITIVITIES.map(sense => (
                                 <button
@@ -751,9 +771,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Format & Audience</h4>
                     
                     <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Primary Deliverable Format</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-2 uppercase tracking-wide">Primary Deliverable Format</label>
                         <select 
-                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
                             value={params.outputFormat}
                             onChange={(e) => handleParamChange('outputFormat', e.target.value)}
                         >
@@ -762,7 +782,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     </div>
 
                     <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Report Depth</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-2 uppercase tracking-wide">Report Depth</label>
                         <div className="grid grid-cols-1 gap-2">
                             {REPORT_DEPTHS.map((depth) => (
                                 <button
@@ -787,9 +807,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Voice & Artifacts</h4>
                     
                     <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Communication Style (Tone)</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-2 uppercase tracking-wide">Communication Style (Tone)</label>
                         <select 
-                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
                             value={params.letterStyle}
                             onChange={(e) => handleParamChange('letterStyle', e.target.value)}
                         >
@@ -798,7 +818,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     </div>
 
                     <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Tactical Emphasis</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-2 uppercase tracking-wide">Tactical Emphasis</label>
                         <div className="space-y-4 bg-stone-50 p-4 rounded-lg border border-stone-100">
                             <div>
                                 <div className="flex justify-between text-[10px] uppercase font-bold text-stone-500 mb-1">
@@ -818,7 +838,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     </div>
 
                     <div className="pt-2">
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Additional Artifacts</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-2 uppercase tracking-wide">Additional Artifacts</label>
                         <div className="flex flex-wrap gap-2">
                             {['Executive Memo', 'Risk Matrix', 'Partner Shortlist', 'Financial Model (XLS)'].map(art => (
                                 <span key={art} className="px-3 py-1 bg-stone-100 border border-stone-200 rounded-full text-[10px] font-bold text-stone-600 cursor-pointer hover:bg-stone-200">
