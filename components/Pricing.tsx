@@ -10,10 +10,12 @@ const plans: PricingPlan[] = [
     duration: 'One-Time Pass',
     description: 'Perfect for executing a single high-stakes mission or trial run.',
     features: [
-      '9-Agent Swarm Intelligence',
+      'Full System Access (9 Agents)',
+      'Unlimited Report Generation',
       'Full Math Core (IVAS™, SCF™, SPI™)',
       'Global Knowledge Graph (195 Regions)',
-      'Unlimited Report Generation'
+      'Real-Time Ethics & Governance',
+      'PDF & Audio Brief Exports'
     ]
   },
   {
@@ -23,9 +25,12 @@ const plans: PricingPlan[] = [
     duration: 'For 3 Months',
     description: 'Designed for strategic planning cycles and market analysis.',
     features: [
-      'All Pilot Features',
-      'Full System Access',
-      'Strategy Cycle Integration'
+      'Full System Access (9 Agents)',
+      'Unlimited Report Generation',
+      'Full Math Core (IVAS™, SCF™, SPI™)',
+      'Global Knowledge Graph (195 Regions)',
+      'Real-Time Ethics & Governance',
+      'PDF & Audio Brief Exports'
     ]
   },
   {
@@ -35,7 +40,10 @@ const plans: PricingPlan[] = [
     duration: 'For 6 Months',
     description: 'Sustained intelligence for regional expansion execution.',
     features: [
-      'All Quarterly Features',
+      'Full System Access (9 Agents)',
+      'Unlimited Report Generation',
+      'Full Math Core (IVAS™, SCF™, SPI™)',
+      'Global Knowledge Graph (195 Regions)',
       'Real-Time Ethics & Governance',
       'PDF & Audio Brief Exports'
     ],
@@ -48,9 +56,12 @@ const plans: PricingPlan[] = [
     duration: 'For 12 Months',
     description: 'Maximum value. Continuous global monitoring & strategy.',
     features: [
-      'All Semi-Annual Features',
-      'Priority Processing',
-      'Dedicated Compute Node'
+      'Full System Access (9 Agents)',
+      'Unlimited Report Generation',
+      'Full Math Core (IVAS™, SCF™, SPI™)',
+      'Global Knowledge Graph (195 Regions)',
+      'Real-Time Ethics & Governance',
+      'PDF & Audio Brief Exports'
     ]
   }
 ];

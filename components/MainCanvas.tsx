@@ -5,9 +5,10 @@ import {
   ChevronLeft, Play, Settings, Database, 
   Briefcase, Clock, AlertTriangle, Layers,
   ArrowRight, Search, Plus, Trash2, MapPin,
-  TrendingUp, BarChart3, Scale, Info, Building2, MousePointerClick, Flag, History
+  TrendingUp, BarChart3, Scale, Info, Building2, MousePointerClick, Flag, History, PenTool,
+  Network
 } from 'lucide-react';
-import { ReportParameters, ReportData, GenerationPhase, LiveOpportunityItem } from '../types';
+import { ReportParameters, ReportData, GenerationPhase, LiveOpportunityItem, ReportSection } from '../types';
 import { 
     ORGANIZATION_TYPES, 
     REGIONS_AND_COUNTRIES, 
@@ -25,7 +26,8 @@ import {
     FUNDING_SOURCES,
     PROCUREMENT_MODES,
     SECTOR_OPPORTUNITIES,
-    GOVERNMENT_INCENTIVES
+    GOVERNMENT_INCENTIVES,
+    DOMAIN_OBJECTIVES
 } from '../constants';
 
 // Module Imports
@@ -36,6 +38,9 @@ import { TemporalAnalysisComponent } from './TemporalAnalysisComponent';
 import { LetterGeneratorModal } from './LetterGeneratorModal';
 import { AnalysisModal } from './AnalysisModal';
 import { AddOpportunityModal } from './AddOpportunityModal';
+import DueDiligenceSuite from './DueDiligenceSuite';
+import GlobalPartnerSearch from './GlobalPartnerSearch';
+import { ComparativeAnalysis } from './ComparativeAnalysis';
 
 // Icons
 import { RocketIcon, MatchMakerIcon, GlobeIcon, BarChart } from './Icons';
@@ -66,6 +71,87 @@ const ENGINE_CATALOG = [
     { id: 'financials', label: 'Financial Modeling', desc: 'Strategic Cash Flow (SCF) & Predictive Growth.', icon: BarChart, color: 'text-green-600', bg: 'bg-green-50' }
 ];
 
+// Helper Component for Custom/Select Inputs
+const SelectOrInput = ({
+    label,
+    value,
+    options,
+    onChange,
+    placeholder = "Enter custom value..."
+}: {
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (val: string) => void;
+    placeholder?: string;
+}) => {
+    // Determine if the current value is custom (not in options list and not empty)
+    const isStandard = options.some(o => o.value === value) || value === "";
+    const [isCustomMode, setIsCustomMode] = useState(!isStandard);
+
+    // If value changes externally to a standard option, switch back to select
+    useEffect(() => {
+        if (options.some(o => o.value === value)) {
+            setIsCustomMode(false);
+        }
+    }, [value, options]);
+
+    return (
+        <div>
+            <div className="flex justify-between items-center mb-1">
+                <label className="text-xs font-bold text-stone-700">{label}</label>
+                <button
+                    onClick={() => {
+                        const nextMode = !isCustomMode;
+                        setIsCustomMode(nextMode);
+                        if (!nextMode) onChange(""); // Reset if switching back to select
+                    }}
+                    className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors"
+                >
+                    {isCustomMode ? <><Layout size={10}/> Switch to List</> : <><PenTool size={10}/> Custom Entry</>}
+                </button>
+            </div>
+
+            {isCustomMode ? (
+                <div className="relative animate-in fade-in duration-200">
+                    <input
+                        className="w-full p-3 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        placeholder={placeholder}
+                        autoFocus
+                    />
+                </div>
+            ) : (
+                <div className="relative">
+                    <select
+                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-stone-900 transition-shadow appearance-none"
+                        value={value}
+                        onChange={(e) => {
+                            if (e.target.value === "CUSTOM_TRIGGER") {
+                                setIsCustomMode(true);
+                                onChange("");
+                            } else {
+                                onChange(e.target.value);
+                            }
+                        }}
+                    >
+                        <option value="">Select {label}...</option>
+                        {options.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                        <option disabled>──────────</option>
+                        <option value="CUSTOM_TRIGGER">Other / Custom Value...</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                        <ChevronRight className="w-4 h-4 rotate-90" />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const MainCanvas: React.FC<MainCanvasProps> = ({ 
     params, setParams, reportData, isGenerating, generationPhase, generationProgress, onGenerate,
     reports, onOpenReport, onDeleteReport, onNewAnalysis
@@ -74,8 +160,14 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     const [isOpportunityModalOpen, setIsOpportunityModalOpen] = useState(false);
     const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
     const [isLetterModalOpen, setIsLetterModalOpen] = useState(false);
+    const [isComparativeModalOpen, setIsComparativeModalOpen] = useState(false);
     const [activeModuleConfig, setActiveModuleConfig] = useState<string | null>(null);
+    const [customIncentive, setCustomIncentive] = useState('');
     
+    // Feature States for Dynamic Workflow
+    const [dueDiligenceTarget, setDueDiligenceTarget] = useState<string>('');
+    const [showPartnerSearch, setShowPartnerSearch] = useState(false);
+
     // Auto-advance
     useEffect(() => {
         if (generationPhase === 'complete' && step !== 4) {
@@ -121,6 +213,11 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
 
     const cityData = getCityData();
 
+    // Determine Objectives List based on Organization Type (Persona Driven)
+    const getObjectivesList = () => {
+        return DOMAIN_OBJECTIVES[params.organizationType] || DOMAIN_OBJECTIVES['Private Enterprise'];
+    };
+
     // --- STEP 1: ORGANIZATION DNA ---
     const renderStep1_Profile = () => (
         <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
@@ -135,103 +232,148 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Corporate Identity */}
-                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
-                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Corporate Identity</h4>
-                    
-                    <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-1">Organization Name</label>
-                        <input 
-                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-stone-900 outline-none"
-                            value={params.organizationName}
-                            onChange={(e) => handleParamChange('organizationName', e.target.value)}
-                            placeholder="e.g. Acme Global Industries"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Entity Type</label>
-                            <select 
-                                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
-                                value={params.organizationType}
-                                onChange={(e) => handleParamChange('organizationType', e.target.value)}
+            <div className="grid grid-cols-1 gap-8">
+                
+                {/* 1. Skill & Persona Selector */}
+                <div className="bg-stone-50 p-6 rounded-xl border border-stone-200">
+                    <label className="block text-sm font-bold text-stone-900 mb-3 uppercase tracking-wide">Analysis Perspective & Skill Level</label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[
+                            { id: 'novice', label: 'Novice / Student', desc: 'Guided experience. I need help navigating terms.' },
+                            { id: 'experienced', label: 'Analyst / Lead', desc: 'Standard workflow. I know my requirements.' },
+                            { id: 'expert', label: 'Expert / Executive', desc: 'Advanced tools. Give me raw data & controls.' }
+                        ].map((level) => (
+                            <button 
+                                key={level.id} 
+                                onClick={() => handleParamChange('skillLevel', level.id)} 
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                                    params.skillLevel === level.id 
+                                    ? 'border-stone-800 bg-white shadow-md ring-1 ring-stone-800' 
+                                    : 'border-stone-200 hover:border-stone-400 text-stone-600 bg-white'
+                                }`}
                             >
-                                {ORGANIZATION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Primary Sector</label>
-                            <select 
-                                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
-                                value={params.industry[0] || ''}
-                                onChange={(e) => handleParamChange('industry', [e.target.value])}
-                            >
-                                <option value="">Select Sector...</option>
-                                {INDUSTRIES.map(i => <option key={i.title} value={i.title}>{i.title}</option>)}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-1">Headquarters Address</label>
-                        <input 
-                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none"
-                            value={params.organizationAddress || ''}
-                            onChange={(e) => handleParamChange('organizationAddress', e.target.value)}
-                            placeholder="123 Strategic Ave, Global City, 10001"
-                        />
-                    </div>
-                    
-                    <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-1">Website</label>
-                        <input 
-                            className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none"
-                            value={params.organizationWebsite || ''}
-                            onChange={(e) => handleParamChange('organizationWebsite', e.target.value)}
-                            placeholder="https://..."
-                        />
+                                <div className={`font-bold text-sm mb-1 ${params.skillLevel === level.id ? 'text-stone-900' : 'text-stone-700'}`}>{level.label}</div>
+                                <div className="text-xs text-stone-500">{level.desc}</div>
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                {/* Operational Scale & Authority */}
+                {/* 2. Corporate Identity */}
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-5">
-                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Operational Scale & Authority</h4>
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Corporate Identity</h4>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Revenue Band</label>
-                            <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.revenueBand} onChange={e => handleParamChange('revenueBand', e.target.value)}>
-                                <option value="">Select Revenue...</option>
-                                {ORGANIZATION_SCALE_BANDS.revenue.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-                            </select>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-stone-700 block mb-1">Organization Name</label>
+                                <input 
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-stone-900 outline-none"
+                                    value={params.organizationName}
+                                    onChange={(e) => handleParamChange('organizationName', e.target.value)}
+                                    placeholder="e.g. Acme Global Industries"
+                                />
+                            </div>
+                            
+                            <SelectOrInput
+                                label="Entity Type"
+                                value={params.organizationType}
+                                options={ORGANIZATION_TYPES.map(t => ({ value: t, label: t }))}
+                                onChange={(val) => handleParamChange('organizationType', val)}
+                                placeholder="e.g. Special Purpose Vehicle"
+                            />
                         </div>
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Headcount</label>
-                            <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.headcountBand} onChange={e => handleParamChange('headcountBand', e.target.value)}>
-                                <option value="">Select Count...</option>
-                                {ORGANIZATION_SCALE_BANDS.headcount.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-                            </select>
+                        <div className="space-y-4">
+                            <SelectOrInput
+                                label="Primary Sector"
+                                value={params.industry[0] || ''}
+                                options={INDUSTRIES.map(i => ({ value: i.title, label: i.title }))}
+                                onChange={(val) => handleParamChange('industry', [val])}
+                                placeholder="e.g. Clean Energy"
+                            />
+                            <div>
+                                <label className="text-xs font-bold text-stone-700 block mb-1">Headquarters Address</label>
+                                <input 
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none"
+                                    value={params.organizationAddress || ''}
+                                    onChange={(e) => handleParamChange('organizationAddress', e.target.value)}
+                                    placeholder="123 Strategic Ave, Global City"
+                                />
+                            </div>
+                             <div>
+                                <label className="text-xs font-bold text-stone-700 block mb-1">Website (Optional)</label>
+                                <input 
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:bg-white outline-none"
+                                    value={params.organizationWebsite || ''}
+                                    onChange={(e) => handleParamChange('organizationWebsite', e.target.value)}
+                                    placeholder="https://..."
+                                />
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-1">Decision Authority Level</label>
-                        <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.decisionAuthority} onChange={e => handleParamChange('decisionAuthority', e.target.value)}>
-                            <option value="">Select Level...</option>
-                            {DECISION_AUTHORITY_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                        </select>
-                    </div>
+                {/* 3. Operational Context & Role (Redesigned) */}
+                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2 flex justify-between">
+                        <span>Operational Context & User Role</span>
+                        <span className="text-xs text-blue-600 font-normal normal-case hidden md:block">Flexible input for any organization size</span>
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Column A: Organizational Scale */}
+                        <div className="space-y-5">
+                            <h5 className="text-sm font-bold text-stone-900 border-l-2 border-stone-300 pl-2">Organizational Scale</h5>
+                            
+                            <SelectOrInput 
+                                label="Annual Revenue"
+                                value={params.revenueBand || ''}
+                                options={ORGANIZATION_SCALE_BANDS.revenue}
+                                onChange={(val) => handleParamChange('revenueBand', val)}
+                                placeholder="e.g. $2.5M or 'Pre-Revenue'"
+                            />
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Your Name</label>
-                            <input className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.userName} onChange={e => handleParamChange('userName', e.target.value)} />
+                            <SelectOrInput 
+                                label="Global Headcount"
+                                value={params.headcountBand || ''}
+                                options={ORGANIZATION_SCALE_BANDS.headcount}
+                                onChange={(val) => handleParamChange('headcountBand', val)}
+                                placeholder="e.g. 15 FTEs"
+                            />
                         </div>
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Department</label>
-                            <input className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.userDepartment} onChange={e => handleParamChange('userDepartment', e.target.value)} />
+
+                        {/* Column B: Your Role */}
+                        <div className="space-y-5">
+                            <h5 className="text-sm font-bold text-stone-900 border-l-2 border-stone-300 pl-2">Your Role Context</h5>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs font-bold text-stone-700 block mb-1">Your Name</label>
+                                    <input 
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" 
+                                        value={params.userName} 
+                                        onChange={e => handleParamChange('userName', e.target.value)} 
+                                        placeholder="Name"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-stone-700 block mb-1">Department</label>
+                                    <input 
+                                        className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" 
+                                        value={params.userDepartment} 
+                                        onChange={e => handleParamChange('userDepartment', e.target.value)}
+                                        placeholder="Dept" 
+                                    />
+                                </div>
+                            </div>
+
+                            <SelectOrInput 
+                                label="Role Perspective (Authority)"
+                                value={params.decisionAuthority || ''}
+                                options={DECISION_AUTHORITY_LEVELS}
+                                onChange={(val) => handleParamChange('decisionAuthority', val)}
+                                placeholder="e.g. Consultant, Owner, Advisor"
+                            />
                         </div>
                     </div>
                 </div>
@@ -239,11 +381,10 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
         </div>
     );
 
-    // --- STEP 2: STRATEGIC MANDATE ---
+    // --- STEP 2: STRATEGIC MANDATE (REBUILT FOR EXPANSION) ---
     const renderStep2_Mandate = () => {
         // Derive specific opportunities based on selected industry
-        const currentSector = params.industry[0]?.split('&')[0].trim() || 'Technology'; // Fallback logic
-        const availableOpportunities = SECTOR_OPPORTUNITIES[currentSector] || SECTOR_OPPORTUNITIES['Technology'];
+        const domainObjectives = getObjectivesList();
 
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
@@ -253,77 +394,159 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     </div>
                     <div>
                         <h3 className="text-xl font-serif font-bold text-stone-900">Strategic Mandate</h3>
-                        <p className="text-sm text-stone-500">Defining the mission vector, opportunity focus, and success KPIs.</p>
+                        <p className="text-sm text-stone-500">Define mission vectors, narrative context, and success metrics.</p>
                     </div>
                 </div>
 
+                {/* 1. Mission Architecture */}
                 <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Mission Architecture</h4>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Core Mandate Type</label>
-                            <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none font-bold text-stone-800" value={params.strategicIntent} onChange={e => handleParamChange('strategicIntent', e.target.value)}>
-                                <option value="">Select Primary Objective...</option>
-                                {MISSION_TYPES.map(m => <option key={m.value} value={m.label}>{m.label}</option>)}
-                            </select>
-                        </div>
+                        <SelectOrInput
+                            label="Core Strategic Intent"
+                            value={params.strategicIntent}
+                            options={domainObjectives}
+                            onChange={(val) => handleParamChange('strategicIntent', val)}
+                            placeholder="e.g. Hostile Takeover Defense"
+                        />
                         
-                        {/* NEW: Opportunity Radar */}
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1 flex items-center gap-1">
-                                <Zap className="w-3 h-3 text-orange-500" /> Specific Opportunity Radar
-                            </label>
-                            <select 
-                                className="w-full p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm outline-none font-medium text-orange-900" 
-                                value={params.specificOpportunity || ''} 
-                                onChange={e => handleParamChange('specificOpportunity', e.target.value)}
-                            >
-                                <option value="">Select Specific Opportunity...</option>
-                                {availableOpportunities.map(opp => <option key={opp} value={opp}>{opp}</option>)}
-                            </select>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-stone-700 block mb-1">Target Region</label>
+                                <select 
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                                    value={params.region}
+                                    onChange={(e) => handleParamChange('region', e.target.value)}
+                                >
+                                    <option value="">Select Region...</option>
+                                    {REGIONS_AND_COUNTRIES.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-stone-700 block mb-1">Specific Country</label>
+                                <select 
+                                    className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
+                                    value={params.country}
+                                    onChange={(e) => handleParamChange('country', e.target.value)}
+                                >
+                                    <option value="">Select Country...</option>
+                                    {REGIONS_AND_COUNTRIES.find(r => r.name === params.region)?.countries.map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    )) || <option disabled>Select Region First</option>}
+                                </select>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                {/* 2. Strategic Context (Narrative) */}
+                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Strategic Context (Narrative)</h4>
+                    
+                    <div className="grid grid-cols-1 gap-6">
+                        <div>
+                            <label className="text-xs font-bold text-stone-700 block mb-1">Problem Statement / Mission Context</label>
+                            <textarea 
+                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none resize-none focus:bg-white focus:ring-2 focus:ring-stone-900 transition-all"
+                                rows={3}
+                                value={params.problemStatement}
+                                onChange={(e) => handleParamChange('problemStatement', e.target.value)}
+                                placeholder="Describe the specific challenge or opportunity driving this mandate. E.g., 'We are facing supply chain bottlenecks in SE Asia and need a diversified manufacturing partner...'"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-stone-700 block mb-1">Ideal Partner Profile</label>
+                            <textarea 
+                                className="w-full p-4 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none resize-none focus:bg-white focus:ring-2 focus:ring-stone-900 transition-all"
+                                rows={2}
+                                value={params.idealPartnerProfile}
+                                onChange={(e) => handleParamChange('idealPartnerProfile', e.target.value)}
+                                placeholder="Describe the attributes of your ideal counterpart. E.g., 'A local logistics firm with bonded warehouse capacity and >$10M revenue...'"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Targeting & Mechanics */}
+                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Targeting & Mechanics</h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Target Counterpart Profile</label>
-                            <select className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" value={params.targetCounterpartType} onChange={e => handleParamChange('targetCounterpartType', e.target.value)}>
-                                <option value="">Select Counterpart...</option>
-                                {TARGET_COUNTERPART_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                        </div>
+                        <SelectOrInput
+                            label="Target Counterpart Profile"
+                            value={params.targetCounterpartType || ''}
+                            options={TARGET_COUNTERPART_TYPES.map(t => ({ value: t, label: t }))}
+                            onChange={(val) => handleParamChange('targetCounterpartType', val)}
+                            placeholder="e.g. Specific Ministry or Conglomerate"
+                        />
                         
-                        {/* NEW: Incentives */}
                         <div>
-                            <label className="text-xs font-bold text-stone-700 block mb-1">Target Incentives (Optional)</label>
-                            <select 
-                                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" 
-                                value="" // Single select for simplicity in demo, could be multi
-                                onChange={e => toggleArrayParam('targetIncentives', e.target.value)}
-                            >
-                                <option value="">Add Incentive Target...</option>
-                                {GOVERNMENT_INCENTIVES.map(inc => <option key={inc} value={inc}>{inc}</option>)}
-                            </select>
-                            <div className="flex flex-wrap gap-2 mt-2">
+                            <label className="text-xs font-bold text-stone-700 block mb-1">Target Incentives</label>
+                            <div className="flex gap-2 mb-2">
+                                <select 
+                                    className="flex-1 p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none" 
+                                    onChange={e => {
+                                        if(e.target.value) toggleArrayParam('targetIncentives', e.target.value);
+                                    }}
+                                    value=""
+                                >
+                                    <option value="">Select Standard Incentive...</option>
+                                    {GOVERNMENT_INCENTIVES.map(inc => <option key={inc} value={inc}>{inc}</option>)}
+                                </select>
+                                <div className="flex-1 flex gap-1">
+                                    <input 
+                                        className="w-full p-3 bg-white border border-stone-200 rounded-lg text-sm outline-none"
+                                        placeholder="Or type custom..."
+                                        value={customIncentive}
+                                        onChange={(e) => setCustomIncentive(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && customIncentive) {
+                                                e.preventDefault();
+                                                toggleArrayParam('targetIncentives', customIncentive);
+                                                setCustomIncentive('');
+                                            }
+                                        }}
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            if (customIncentive) {
+                                                toggleArrayParam('targetIncentives', customIncentive);
+                                                setCustomIncentive('');
+                                            }
+                                        }}
+                                        className="px-3 bg-stone-100 border border-stone-200 rounded-lg hover:bg-stone-200 text-stone-600"
+                                    >
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
                                 {(params.targetIncentives || []).map(inc => (
-                                    <span key={inc} onClick={() => toggleArrayParam('targetIncentives', inc)} className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200 cursor-pointer hover:bg-red-50 hover:text-red-700 transition-colors">
-                                        {inc} ×
+                                    <span key={inc} onClick={() => toggleArrayParam('targetIncentives', inc)} className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200 cursor-pointer hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-1">
+                                        {inc} <Trash2 size={10} />
                                     </span>
                                 ))}
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* 4. Success Vectors */}
+                <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 pb-2">Success Vectors</h4>
 
                     <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Priority Themes (Select all that apply)</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-2">Priority Themes</label>
                         <div className="flex flex-wrap gap-2">
-                            {PRIORITY_THEMES.map(theme => (
+                            {PRIORITY_THEMES.slice(0, 10).map(theme => (
                                 <button
                                     key={theme}
                                     onClick={() => toggleArrayParam('priorityThemes', theme)}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                                         (params.priorityThemes || []).includes(theme)
-                                        ? 'bg-stone-900 text-white border-stone-900'
-                                        : 'bg-white text-stone-500 border-stone-200 hover:border-stone-400'
+                                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                        : 'bg-white text-stone-500 border-stone-200 hover:border-purple-300'
                                     }`}
                                 >
                                     {theme}
@@ -333,45 +556,21 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                     </div>
 
                     <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Success Metrics (KPIs)</label>
+                        <label className="text-xs font-bold text-stone-700 block mb-2">Key Performance Indicators (KPIs)</label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             {SUCCESS_METRICS.map(metric => (
                                 <button
                                     key={metric.value}
                                     onClick={() => toggleArrayParam('successMetrics', metric.label)}
-                                    className={`p-2 rounded-lg text-xs font-medium border text-center transition-all ${
+                                    className={`p-3 rounded-lg text-xs font-bold border text-center transition-all ${
                                         (params.successMetrics || []).includes(metric.label)
-                                        ? 'bg-blue-50 border-blue-500 text-blue-800'
+                                        ? 'bg-blue-50 border-blue-500 text-blue-800 shadow-inner'
                                         : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
                                     }`}
                                 >
                                     {metric.label}
                                 </button>
                             ))}
-                        </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-stone-100">
-                        <label className="text-xs font-bold text-stone-700 block mb-2">Target Region (Specific)</label>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <select 
-                                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
-                                value={params.region}
-                                onChange={(e) => handleParamChange('region', e.target.value)}
-                            >
-                                <option value="">Select Region...</option>
-                                {REGIONS_AND_COUNTRIES.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
-                            </select>
-                            <select 
-                                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none"
-                                value={params.country}
-                                onChange={(e) => handleParamChange('country', e.target.value)}
-                            >
-                                <option value="">Select Country...</option>
-                                {REGIONS_AND_COUNTRIES.find(r => r.name === params.region)?.countries.map(c => (
-                                    <option key={c} value={c}>{c}</option>
-                                )) || <option disabled>Select Region First</option>}
-                            </select>
                         </div>
                     </div>
                 </div>
@@ -566,6 +765,9 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                             <button onClick={() => setIsLetterModalOpen(true)} className="px-6 py-2 bg-white text-stone-900 border border-stone-300 font-bold rounded-lg text-sm hover:bg-stone-50 transition-colors">
                                 Draft Outreach
                             </button>
+                            <button onClick={() => setIsComparativeModalOpen(true)} className="px-6 py-2 bg-purple-50 text-purple-900 border border-purple-200 font-bold rounded-lg text-sm hover:bg-purple-100 transition-colors flex items-center justify-center gap-2">
+                                <Scale size={14} /> Compare Scenario
+                            </button>
                         </div>
                     </div>
 
@@ -631,6 +833,17 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 
+                {/* 0. Due Diligence (If active) */}
+                {dueDiligenceTarget && (
+                    <div className="animate-in fade-in slide-in-from-right-4">
+                        <div className="flex items-center gap-2 mb-2">
+                            <ShieldCheck className="w-4 h-4 text-blue-600" />
+                            <span className="text-xs font-bold text-blue-800 uppercase">Live Due Diligence</span>
+                        </div>
+                        <DueDiligenceSuite partnerName={dueDiligenceTarget} partnerType="Potential Partner" />
+                    </div>
+                )}
+
                 {/* 1. Regional Context Card */}
                 {params.country && cityData && (
                     <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
@@ -712,7 +925,7 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
     );
 
     return (
-        <div className="flex h-full bg-stone-50 font-sans text-stone-900">
+        <div className="flex-1 w-full flex h-full bg-stone-50 font-sans text-stone-900 min-w-0">
             
             {/* LEFT COLUMN: BUILDER (60%) */}
             <div className={`flex-1 flex flex-col border-r border-stone-200 bg-stone-50/30 transition-all duration-500 ${step === 4 ? 'w-0 opacity-0 hidden' : 'w-[60%] p-8 overflow-y-auto'}`}>
@@ -805,13 +1018,20 @@ const MainCanvas: React.FC<MainCanvasProps> = ({
                 />
             )}
 
+            {isComparativeModalOpen && (
+                <ComparativeAnalysis 
+                    reports={reports} 
+                    onClose={() => setIsComparativeModalOpen(false)} 
+                />
+            )}
+
             <LetterGeneratorModal 
                 isOpen={isLetterModalOpen}
                 onClose={() => setIsLetterModalOpen(false)}
                 onGenerate={async (content) => {
                     return new Promise(resolve => setTimeout(() => resolve(`To Whom It May Concern,\n\n regarding ${params.organizationName}...`), 1000));
                 }}
-                reportContent={Object.values(reportData).map(s => s.content).join('\n')}
+                reportContent={Object.values(reportData).map((s) => (s as ReportSection).content).join('\n')}
                 reportParameters={params}
             />
 

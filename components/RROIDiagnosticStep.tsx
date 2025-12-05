@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ReportParameters, RROI_Index } from '../types';
+import { ReportParameters, RROI_Index, RROI_Component } from '../types';
 import { generateRROI } from '../services/engine';
 import { TrendingUp, BarChart3, Activity } from 'lucide-react';
 
@@ -63,21 +63,23 @@ const RROIDiagnosticStep: React.FC<RROIDiagnosticStepProps> = ({ params }) => {
             </p>
 
             <div className="space-y-4">
-                {Object.entries(rroi.components).map(([key, comp]) => (
+                {Object.entries(rroi.components).map(([key, comp]) => {
+                    const c = comp as RROI_Component;
+                    return (
                     <div key={key}>
                         <div className="flex justify-between text-xs mb-1">
-                            <span className="font-bold text-stone-700 uppercase">{comp.name}</span>
-                            <span className="font-mono text-stone-500">{comp.score}</span>
+                            <span className="font-bold text-stone-700 uppercase">{c.name}</span>
+                            <span className="font-mono text-stone-500">{c.score}</span>
                         </div>
                         <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden mb-1">
                             <div 
-                                className={`h-full rounded-full transition-all duration-1000 ${getBarColor(comp.score)}`} 
-                                style={{ width: `${comp.score}%` }}
+                                className={`h-full rounded-full transition-all duration-1000 ${getBarColor(c.score)}`} 
+                                style={{ width: `${c.score}%` }}
                             />
                         </div>
-                        <p className="text-[10px] text-stone-400 truncate">{comp.analysis}</p>
+                        <p className="text-[10px] text-stone-400 truncate">{c.analysis}</p>
                     </div>
-                ))}
+                )})}
             </div>
         </div>
     );

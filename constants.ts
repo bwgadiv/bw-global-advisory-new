@@ -88,7 +88,12 @@ export const ORGANIZATION_TYPES = [
     'Government / Public Sector',
     'Sovereign Wealth Fund',
     'NGO / Non-Profit',
-    'Custom'
+    'Academic / Research Institution',
+    'Financial Institution',
+    'Multilateral Organization',
+    'Family Office',
+    'Startup / Scaleup',
+    'Conglomerate / Holding Co.'
 ];
 
 export const ORGANIZATION_SUBTYPES: Record<string, string[]> = {
@@ -391,6 +396,31 @@ export const MISSION_TYPES = [
   { value: 'ecosystem_dev', label: 'Ecosystem Development' },
   { value: 'other', label: 'Other (Specify Below)' }
 ];
+
+export const DOMAIN_OBJECTIVES: Record<string, {value: string, label: string}[]> = {
+    'Government / Public Sector': [
+        { value: 'attract_fdi', label: 'Attract Foreign Direct Investment' },
+        { value: 'policy_benchmark', label: 'Benchmark Policy Framework' },
+        { value: 'sez_development', label: 'Develop Special Economic Zone' },
+        { value: 'infrastructure_modernization', label: 'Infrastructure Modernization' },
+        { value: 'trade_agreement', label: 'Negotiate Trade Agreement' },
+        { value: 'sovereign_wealth_deployment', label: 'Sovereign Wealth Deployment' }
+    ],
+    'Financial Institution': [
+        { value: 'identify_alpha', label: 'Identify Alpha Opportunities' },
+        { value: 'portfolio_derisking', label: 'Portfolio De-risking' },
+        { value: 'lbo_screening', label: 'LBO Target Screening' },
+        { value: 'sovereign_debt_analysis', label: 'Sovereign Debt Analysis' },
+        { value: 'market_making', label: 'Market Making / Liquidity' }
+    ],
+    'Private Enterprise': MISSION_TYPES, // Default to standard list
+    'Startup / Scaleup': [
+        { value: 'market_entry', label: 'New Market Entry' },
+        { value: 'fundraising', label: 'Raise Capital (Series A/B)' },
+        { value: 'strategic_partnership', label: 'Find Strategic Partner' },
+        { value: 'supply_chain', label: 'Secure Supply Chain' }
+    ]
+};
 
 export const TARGET_COUNTERPART_TYPES = [
   'National Government',

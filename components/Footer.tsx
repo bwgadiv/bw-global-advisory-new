@@ -51,13 +51,27 @@ export const Footer: React.FC = () => {
         <h3 className="text-xl font-serif font-bold text-bw-gold mb-2">Legal Agreement</h3>
         <p className="text-sm text-gray-400 mb-4">Terms and Conditions of Service | Effective May 2025</p>
         
-        <div className="space-y-4 text-sm text-gray-300">
-          <p>BW Global Advisory Pty Ltd (“BWGA”) provides strategic intelligence, analytical products, advisory services, and AI-assisted research capabilities.</p>
-          <ul className="list-disc pl-5 space-y-2">
-            <li>BWGA makes no representation that any forecast or model will materialise in real-world performance.</li>
-            <li>BWGA is not a licensed broker or investment intermediary.</li>
-            <li>Clients acknowledge that all intelligence is provided for strategic evaluation only.</li>
-          </ul>
+        <div className="space-y-6 text-sm text-gray-300">
+          <div>
+            <strong className="text-white block mb-1">1. Authorized Use & Access Protocols</strong>
+            <p>This system is strictly for authorized strategic analysis. Access rights and data depth are calibrated to the user's declared Skill Level (Novice, Experienced, Expert). All inputs, including custom entity data, are processed via secure enterprise gateways. Unlawful data injection is prohibited.</p>
+          </div>
+          <div>
+            <strong className="text-white block mb-1">2. Decision Support & Authority</strong>
+            <p>BW Global Advisory provides insights for informational purposes. The Nexus OS outputs are probabilistic. Users operating at 'Novice' levels should verify insights with 'Expert' domain holders. Strategic decisions remain the sole responsibility of the user.</p>
+          </div>
+          <div>
+            <strong className="text-white block mb-1">3. Data Privacy & Sovereignty</strong>
+            <p>We adhere to strict GDPR and local data sovereignty laws. Custom operational data (Revenue, Headcount) and specific strategic intents are isolated. No user-specific data is used to train public foundation models.</p>
+          </div>
+          <div>
+            <strong className="text-white block mb-1">4. Financial & Operational Models</strong>
+            <p>The SCF (Strategic Cash Flow) and IVAS (Investment Viability Assessment) models are simulations based on provided Operational Scale and historical benchmarks. They do not constitute financial advice and scale dynamically with input granularity.</p>
+          </div>
+          <div>
+            <strong className="text-white block mb-1">5. Historical Context & Predictive Limits</strong>
+            <p>The system utilizes a dataset spanning 2015-2025 to identify failure patterns. Users acknowledge that past performance is used for predictive modeling only. Black swan events outside the training data may impact accuracy.</p>
+          </div>
         </div>
       </div>
 

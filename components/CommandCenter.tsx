@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ReportParameters } from '../types';
 import { 
     Terminal, Play, CheckCircle2, ShieldAlert, 
-    ArrowRight, Globe, Lock
+    Globe, Lock
 } from 'lucide-react';
 
 interface CommandCenterProps {
@@ -20,7 +20,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
     const [accepted, setAccepted] = useState(false);
 
     return (
-        <div className="h-full bg-stone-50 flex items-center justify-center p-6 font-sans overflow-y-auto">
+        <div className="h-full w-full flex-1 bg-stone-50 flex items-center justify-center p-6 font-sans overflow-y-auto">
             <div className="max-w-5xl w-full bg-white shadow-2xl border border-stone-200 rounded-sm overflow-hidden flex flex-col md:flex-row min-h-[600px]">
                 
                 {/* Left Panel: Introduction */}
@@ -76,15 +76,15 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                         </h3>
 
                         <div className="space-y-4 text-xs text-stone-600 bg-white p-6 rounded-sm border border-stone-200 h-64 overflow-y-auto custom-scrollbar shadow-inner">
-                            <p><strong className="text-stone-900 block mb-1">1. Authorized Use Only</strong> This system is strictly for authorized strategic analysis. All data inputs are processed via secure enterprise gateways. Unlawful use or data injection is prohibited.</p>
+                            <p><strong className="text-stone-900 block mb-1">1. Authorized Use & Access Protocols</strong> This system is strictly for authorized strategic analysis. Access rights and data depth are calibrated to the user's declared Skill Level (Novice, Experienced, Expert). All inputs, including custom entity data, are processed via secure enterprise gateways. Unlawful data injection is prohibited.</p>
                             
-                            <p><strong className="text-stone-900 block mb-1">2. Decision Support Nature</strong> BW Global Advisory provides insights for informational purposes. The Nexus OS outputs are probabilistic and should be verified by human domain experts. Strategic decisions remain the sole responsibility of the user.</p>
+                            <p><strong className="text-stone-900 block mb-1">2. Decision Support & Authority</strong> BW Global Advisory provides insights for informational purposes. The Nexus OS outputs are probabilistic. Users operating at 'Novice' levels should verify insights with 'Expert' domain holders. Strategic decisions remain the sole responsibility of the user.</p>
                             
-                            <p><strong className="text-stone-900 block mb-1">3. Data Privacy & Sovereignty</strong> We adhere to strict GDPR and local data sovereignty laws. No user-specific strategic data is used to train public foundation models. Your mission context is isolated.</p>
+                            <p><strong className="text-stone-900 block mb-1">3. Data Privacy & Sovereignty</strong> We adhere to strict GDPR and local data sovereignty laws. Custom operational data (Revenue, Headcount) and specific strategic intents are isolated. No user-specific data is used to train public foundation models.</p>
                             
-                            <p><strong className="text-stone-900 block mb-1">4. Financial Models</strong> The SCF (Strategic Cash Flow) and IVAS (Investment Viability Assessment) models are simulations based on provided parameters and historical benchmarks. They do not constitute financial advice.</p>
+                            <p><strong className="text-stone-900 block mb-1">4. Financial & Operational Models</strong> The SCF (Strategic Cash Flow) and IVAS (Investment Viability Assessment) models are simulations based on provided Operational Scale and historical benchmarks. They do not constitute financial advice and scale dynamically with input granularity.</p>
                             
-                            <p><strong className="text-stone-900 block mb-1">5. Historical Context</strong> The system utilizes a dataset spanning 2015-2025 to identify failure patterns. Users acknowledge that past performance is used for predictive modeling only.</p>
+                            <p><strong className="text-stone-900 block mb-1">5. Historical Context & Predictive Limits</strong> The system utilizes a dataset spanning 2015-2025 to identify failure patterns. Users acknowledge that past performance is used for predictive modeling only. Black swan events outside the training data may impact accuracy.</p>
                         </div>
                     </div>
 
